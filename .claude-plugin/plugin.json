@@ -1,0 +1,15 @@
+{
+  "name": "nextjs-react-native-skills",
+  "version": "1.0.0",
+  "description": "Universal frontend coding skills for Next.js (App Router + Page Router) and React Native (Expo Router), built on the finalized knowledge base. Enforces the _modules architecture, Link-only navigation, component hierarchy, function minimalism, and Zod/React-Hook-Form validation.",
+  "keywords": [
+    "nextjs",
+    "app-router",
+    "page-router",
+    "react-native",
+    "expo-router",
+    "typescript",
+    "tanstack-query",
+    "tailwind"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "tony-frontend",
+  "owner": {
+    "name": "Tony",
+    "email": "truongtoanlvc@gmail.com"
+  },
+  "metadata": {
+    "description": "Frontend engineering skills & rules marketplace.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "nextjs-react-native-skills",
+      "source": "./",
+      "description": "Universal skills to code Next.js (App/Page Router) and React Native (Expo Router).",
+      "version": "1.0.0",
+      "category": "development",
+      "keywords": ["nextjs", "react-native", "expo-router", "frontend"]
+    }
+  ]
+}
