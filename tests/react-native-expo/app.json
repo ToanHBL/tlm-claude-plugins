@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Rules User CRUD",
+    "slug": "rules-user-crud-expo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "rulesusercrud",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

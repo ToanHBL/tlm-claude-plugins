@@ -21,8 +21,14 @@ rules/
 │   ├── templates/           # Requirement-intake templates
 │   ├── nextjs/{app,page}-router/
 │   └── reactnative/         # RN/Expo: StyleSheet, Expo Router, AsyncStorage, RHF+Zod
-└── resource/                # Original source material (archive — superseded by ai/)
+├── tests/                   # One project per ruleset — same User-CRUD spec, generated per skill
+│   ├── nextjs-app-router/   ├── nextjs-page-router/
+│   ├── react-native-cli/    └── react-native-expo/
+└── raw/resource/            # Original source material (archive — superseded by ai/)
 ```
+
+Each `tests/*` folder is a real project a skill generated from one shared spec, with a
+`PROJECT-NOTES.md` mapping every file back to the rule it follows. See `tests/README.md`.
 
 ## What the skills do
 
