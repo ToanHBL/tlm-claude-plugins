@@ -40,6 +40,9 @@ Screen    → HomeIndexScreen, ProductListScreen   (page-level; in pages/[Domain
 ```
 
 - Domain components **never** go in `common/components/`.
+- **React 19: `ref` is a normal prop — do NOT use `forwardRef` in new code.** Type it as
+  `props: OwnProps & { ref?: Ref<HTMLInputElement> }`; it passes through `{...props}` like any prop
+  (`register()`/`setValue` still bind fine). `forwardRef` is legacy, for React ≤18 codebases only.
 - Create components liberally — even for a single use, if it clarifies boundaries.
 - Use abstract folder names (`list/`, `detail/`, `form/`), not specific ones.
 - **Never use raw HTML** (`<div>`, `<p>`, `<span>`) — use `Col`/`Row`/`TextPrimary`. If a semantic/
@@ -85,6 +88,10 @@ mount/unmount whole subtrees.
 
 - Layout via `Col`/`Row` + Tailwind utility classes; text via `TextPrimary`.
 - Build in-house `Base*` primitives styled with Tailwind CSS; screens use those `Base*` components, never raw framework UI kits.
+- Design tokens live in ONE place — Tailwind v4: `@theme` in the global CSS; v3: `theme.extend` in
+  the config. **Never hardcode hex in components** (`bg-[#0075ff]`, inline styles) — only
+  token-backed classes. New colors are a token change, not a per-component decision.
+  See `ai/shared/02-styling-ui-conventions.md`.
 - Mobile-first, responsive. Wrap all display strings in `t()` (i18next) — never hardcode.
 
 ## 6. Naming

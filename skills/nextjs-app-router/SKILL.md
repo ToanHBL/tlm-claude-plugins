@@ -37,6 +37,9 @@ Route groups `(name)/`, dynamic `[id]/`, catch-all `[...slug]/`, parallel `@slot
 - **Client Component** (`'use client'` at top): needs hooks, state, effects, event handlers, browser APIs.
 - Keep `'use client'` at the leaves. Fetch in Server Components; pass data down. A Client Component may
   render Server Components only via `children`.
+- **Never call `Date.now()` / `new Date()` / `Math.random()` during render** (Server or Client) — the
+  server and client produce different values → hydration mismatch, broken prerendering. Compute
+  timestamps in the data layer, an event handler, or an effect.
 
 ```tsx
 // Server Component — fetch on the server
@@ -105,9 +108,20 @@ Shared headers/nav belong in `layout.tsx`, not per-page. A `'use client'` `Globa
 `usePathname()` to render context-aware / conditional menus and can pull a dynamic API-driven menu —
 all navigation via `Link`. Full pattern: `ai/nextjs/app-router/02-routing-structure.md` → "Global Navigation".
 
+## 8. States are part of the screen (done-criteria)
+
+A screen isn't done with just the happy path. Before calling any screen/route finished:
+
+- new route segment → ships `loading.tsx` + `error.tsx` (streaming fallback + error boundary)
+- empty data → the project's shared empty-state component — never an ad-hoc `<div>No data</div>`
+- failure surface → the shared error-banner/toast component — never an invented one-off treatment
+- forms/actions → pending UI (`useFormStatus`/`useActionState`: disabled submit, optimistic or skeleton refresh)
+
 ## Checklist
 - [ ] `app/` files are thin; logic in `_modules/pages/`
 - [ ] `'use client'` only where hooks/interactivity are needed, pushed to leaves
+- [ ] No `Date.now()`/`new Date()`/`Math.random()` during render (hydration)
+- [ ] States shipped: `loading.tsx`/`error.tsx`, shared empty-state, pending UI on forms
 - [ ] Params via `next/navigation` / props, not `next/router`
 - [ ] Mutations via Zod-validated Server Actions + `revalidatePath/Tag`
 - [ ] Shared base rules from `frontend-conventions` applied
