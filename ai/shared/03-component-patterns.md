@@ -120,21 +120,24 @@ const inputSizeClasses = {
   md: 'p-0 h-[2.375rem] rounded-md',
 };
 
-// Forward the ref so register()/setValue bind directly to the DOM input
-const BaseInput = forwardRef<HTMLInputElement, BaseInputProps>(function BaseInput(
-  { color = 'primary', size = 'md', className, ...props },
-  ref,
-) {
+// React 19: `ref` is a normal prop — do NOT use forwardRef in new code.
+// register()/setValue still bind directly to the DOM input: the ref arrives
+// via {...props} like any other prop.
+export default function BaseInput({
+  color = 'primary',
+  size = 'md',
+  className,
+  ...props
+}: BaseInputProps & { ref?: Ref<HTMLInputElement> }) {
   return (
     <input
-      ref={ref}
       className={`mt-0 ${inputColorClasses[color]} ${inputSizeClasses[size]} ${className || ''}`}
       {...props}
     />
   );
-});
+}
 
-export default BaseInput;
+// Legacy (React ≤18 codebases only): wrap with forwardRef<HTMLInputElement, BaseInputProps>.
 ```
 
 ### 3. Form Controller Pattern (heavy customization only)

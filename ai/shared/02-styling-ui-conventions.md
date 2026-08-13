@@ -59,6 +59,42 @@ theme: {
 }
 ```
 
+### 3. Tailwind CSS v4 — CSS-first tokens (`@theme`)
+
+On Tailwind v4 projects there is no `tailwind.config.ts` — design tokens live in
+the global stylesheet via `@theme`, and every token automatically becomes a
+utility class:
+
+```css
+/* globals.css */
+@import "tailwindcss";
+
+@theme {
+  /* Semantic tokens — every entry becomes bg-*/text-*/border-* classes */
+  --color-accent: #0075ff;   /* primary buttons, active nav, links */
+  --color-title: #1a1f36;    /* page + section titles */
+  --color-body: #30313d;     /* body / cell text */
+  --color-hairline: #ebeef1; /* row dividers — the default border */
+
+  --radius-badge: 6px;
+  --radius-callout: 10px;
+}
+```
+
+Prefer **semantic names** (`accent`, `title`, `hairline`) over raw palette
+names so a rebrand is a token edit, not a codebase sweep. An alternative when
+adopting a design system over an existing codebase: **remap a stock palette**
+(e.g. redefine `--color-zinc-*` to the brand's neutrals) so every existing
+`zinc-*` class inherits the new system with zero component changes.
+
+### 4. Never hardcode hex in components (CRITICAL)
+
+Components reference tokens only — `bg-accent`, `text-title`,
+`border-hairline` (or the project's palette classes). A raw hex value in a
+component (`bg-[#0075ff]`, inline styles) bypasses the design system and
+breaks theming/rebranding. New colors are a **token change** in the style
+guide, never a per-component decision.
+
 ## Component Styling Patterns
 
 ### 1. Base Component Variants
