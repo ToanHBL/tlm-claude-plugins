@@ -1,5 +1,5 @@
 {
-  "name": "tony-frontend",
+  "name": "tlm-claude-plugins",
   "owner": {
     "name": "Tony",
     "email": "truongtoanlvc@gmail.com"
@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "nextjs-react-native-skills",
+      "name": "tlm-claude-plugins",
       "source": "./",
       "description": "Universal skills to code Next.js (App/Page Router) and React Native (Expo Router).",
       "version": "1.0.0",
