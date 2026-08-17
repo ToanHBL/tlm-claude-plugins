@@ -4,16 +4,20 @@
 
 This document covers the **App Router** architecture pattern introduced in Next.js 13+. App Router uses React Server Components, improved layouts, and modern data fetching patterns.
 
-**When to use App Router:**
-- New projects prioritizing SSR/SSG
-- Projects needing nested layouts
-- Server-first data fetching requirements
-- Modern React patterns (Server Components)
+> **Team policy: App Router is the exception, not the default** (see the `frontend-conventions` skill →
+> "Choosing the Next.js router"). Default to **Page Router** for management/admin/internal apps; use App
+> Router only when genuinely needed — chiefly public, SEO-facing "publish" pages.
 
-**When NOT to use App Router:**
-- Need full static export (`next export`)
-- Team unfamiliar with Server Components
-- Legacy dependencies incompatible with RSC
+**When to use App Router (the exception):**
+- **Public "publish" pages** — marketing, landing, blog, docs, product pages needing SEO / social metadata
+- SSR / SSG / ISR, streaming, or edge rendering genuinely required
+- You specifically need Server Components, Server Actions, or nested partial-render layouts
+
+**When NOT to use App Router (stay on Page Router):**
+- Management / admin / internal apps, dashboards, back-office tools (SEO irrelevant behind a login)
+- You want a simple client-rendered SPA with minimal boilerplate
+- You need full static export, or a fullstack app whose API is `app/api` route handlers + Prisma (Page Router Mode B)
+- "It's newer / more modern" is **not** a sufficient reason — require a concrete SSR/SEO/RSC need
 
 ---
 

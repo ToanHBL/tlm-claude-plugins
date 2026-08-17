@@ -1,5 +1,11 @@
 # API & Data Flow (Page Router)
 
+> **Applies to both modes, with one difference: the base URL.** The `apiClient[Domain].ts` /
+> TanStack Query pattern below is identical in Mode A and Mode B. Only the target differs — **Mode A**
+> fetches an absolute external `NEXT_PUBLIC_API_URL`; **Mode B** fetches same-origin `/api/*` handlers
+> backed by Prisma (see `05-fullstack-nextjs-api-prisma.md`). The "no server" statements here are the
+> Mode A default; in Mode B the server is this app's own App Router route handlers (`app/api/**/route.ts`).
+
 ## Overview
 
 Page Router uses **React Query** (TanStack Query) for client-side data fetching and caching. This document covers the complete data flow architecture from API calls to component rendering.
@@ -8,12 +14,13 @@ Page Router uses **React Query** (TanStack Query) for client-side data fetching 
 
 ## Architecture Layers
 
+Static export = **no server**, so there is no server-action / BFF layer. The browser calls the external
+backend directly:
+
 ```
-API Endpoint (External/Internal)
-         ↓
-Server Actions (_modules/server/actions/)     [Optional - Server-side logic]
-         ↓
-API Client (_modules/_api/)                   [React Query hooks]
+External Backend API  (absolute URL, e.g. NEXT_PUBLIC_API_URL)
+         ↓  (fetch/axios straight from the browser — CORS must allow the SPA origin)
+API Client (_modules/_api/)                   [React Query hooks — the ONLY data layer]
          ↓
 Screen Component (_modules/pages/)            [Business logic]
          ↓
@@ -28,18 +35,17 @@ UI Components                                  [Presentation]
 
 ```
 _modules/
-├── _api/                          # React Query hooks (client-side)
-│   ├── apiClientProduct.ts        # Product CRUD operations
-│   ├── apiClientUser.ts           # User operations
-│   └── apiClientOrder.ts          # Order operations
-├── server/                        # Optional server-side operations
-│   └── actions/
-│       ├── product.ts             # Server actions (for App Router migration)
-│       └── user.ts
+├── _api/                          # React Query hooks (client-side) — the ONLY data layer
+│   ├── apiClientProduct.ts        # Product CRUD → external backend
+│   ├── apiClientUser.ts           # User operations → external backend
+│   └── apiClientOrder.ts          # Order operations → external backend
 └── common/
     └── utils/
-        └── utilsApi.ts            # API utility functions
+        └── utilsApi.ts            # axios instance pointed at the external backend base URL
 ```
+
+> No `_modules/server/` folder: there is no server runtime in a static export. Everything the app does
+> at runtime happens in the browser.
 
 ---
 
@@ -166,13 +172,15 @@ export interface Product {
   createdAt: string;
 }
 
-// API Endpoints
+// API Endpoints — paths on the EXTERNAL backend (UtilsApi.baseURL = NEXT_PUBLIC_API_URL).
+// These are NOT Next.js pages/api routes; the `/api/...` prefix here belongs to the backend, and every
+// request goes cross-origin straight from the browser.
 const API_ENDPOINTS = {
-  LIST: '/api/products',
-  DETAIL: (id: string) => `/api/products/${id}`,
-  CREATE: '/api/products',
-  UPDATE: (id: string) => `/api/products/${id}`,
-  DELETE: (id: string) => `/api/products/${id}`,
+  LIST: '/products',
+  DETAIL: (id: string) => `/products/${id}`,
+  CREATE: '/products',
+  UPDATE: (id: string) => `/products/${id}`,
+  DELETE: (id: string) => `/products/${id}`,
 };
 
 // ============================================

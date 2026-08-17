@@ -11,6 +11,25 @@ on this base. When any of those triggers, apply these conventions too.
 
 Deep reference (bundled with this plugin): `ai/shared/` and `ai/README.md`.
 
+## Choosing the Next.js router (team policy)
+
+**Default to Page Router. Reach for App Router only when you genuinely need it — chiefly for public,
+SEO-facing "publish" pages.** This is a deliberate org preference, not a neutral "it depends".
+
+| Use **Page Router** (default) | Use **App Router** (only when needed) |
+|---|---|
+| Management / admin / internal apps — dashboards, CRUD, back-office, authenticated tools | **Public "publish" pages** — marketing, landing, blog, docs, product pages needing SEO / social metadata |
+| Behind a login; SEO irrelevant | SSR / SSG / ISR, streaming, or edge rendering genuinely required |
+| Want a simple client-rendered SPA, fast iteration, minimal boilerplate | Specifically need Server Components, Server Actions, or nested partial-render layouts |
+
+- **Managed/internal product → Page Router** (skill `nextjs-page-router`). Backend, if any, is that
+  skill's Mode B (App Router route handlers under `app/api` + Prisma) — that does **not** make the UI an
+  App Router app.
+- **Public site / publish pages → App Router** (skill `nextjs-app-router`), for the SEO/SSR wins.
+- A product with both an admin area and a public site may **mix**: Page Router for the admin, App Router
+  for the public pages (separate apps, or coexisting in one repo). Don't migrate an admin app to App
+  Router just for "modernness" — that's not a sufficient reason under this policy.
+
 ## 1. Framework-agnostic `_modules/` architecture
 
 Business logic lives in `_modules/`, **never** in the routing layer. Routing files are thin (≤5 lines)

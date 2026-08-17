@@ -1,6 +1,6 @@
 ---
 name: nextjs-app-router
-description: Build and debug Next.js App Router code (the app/ directory) — Server/Client Components, layouts, Server Actions, streaming/data fetching, route handlers, and revalidation — following the _modules conventions. Use when working in app/, writing layout.tsx/page.tsx/route.ts, 'use server' actions, or async Server Components.
+description: Build and debug Next.js App Router code (the app/ directory) — Server/Client Components, layouts, Server Actions, streaming/data fetching, route handlers, and revalidation — following the _modules conventions. Use when working in app/, writing layout.tsx/page.tsx/route.ts, 'use server' actions, or async Server Components. Team policy: App Router is for public/SEO "publish" pages or when SSR/SSG/RSC is genuinely needed; management/admin/internal apps default to Page Router (nextjs-page-router).
 ---
 
 # Next.js App Router
@@ -12,9 +12,16 @@ Deep reference bundled with this plugin: `ai/nextjs/app-router/` (01-architectur
 **First:** follow the `frontend-conventions` skill — `_modules/` architecture, component hierarchy,
 Link-only navigation, function minimalism, no `as any`, i18n. Everything below is App-Router-specific.
 
+> **App Router is the exception, not the default** (see `frontend-conventions` → "Choosing the Next.js
+> router"). Reach for it when you genuinely need it — chiefly **public, SEO-facing "publish" pages**
+> (marketing, landing, blog, docs) that want SSR/SSG/ISR, streaming, or Server Components/Actions. For
+> management/admin/internal apps, default to **Page Router** (`nextjs-page-router`) instead. Don't adopt
+> App Router just for modernness.
+
 ## When this applies
-Project has `src/app/`, uses async Server Components, imports from `next/navigation`, or has
-`'use server'` / `route.ts` files.
+The project is (or a slice of it is) a **public/publish surface** needing SEO/SSR, and has `src/app/`,
+async Server Components, imports from `next/navigation`, or `'use server'` / `route.ts` files. For an
+internal management app, use the `nextjs-page-router` skill.
 
 ## 1. Routing layer stays thin
 

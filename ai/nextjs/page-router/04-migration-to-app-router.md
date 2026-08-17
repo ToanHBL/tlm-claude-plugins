@@ -241,26 +241,25 @@ export default function Page({ params }: { params: { id: string } }) {
 
 ---
 
-## Step 6: Update Server Actions
+## Step 6: (Optional) Introduce Server Actions
 
-### Add 'use server' Directive
+The page-router app has **no server actions** — it's a static SPA whose data lives entirely in
+client-side `apiClient[Domain].ts` TanStack Query hooks calling the external backend. App Router adds a
+real server, so migration *optionally* lets you move data access server-side. This is **net-new code**,
+not a rename:
 
 ```typescript
-// src/_modules/server/actions/product.ts
-
-// ADD THIS LINE:
+// NEW in App Router — src/_modules/server/actions/product.ts
 'use server';
 
 export async function fetchProductsAction() {
-  return await prisma.product.findMany();
-}
-
-export async function createProductAction(data: any) {
-  return await prisma.product.create({ data });
+  // now runs on the server; can hold secrets, use httpOnly cookies, hit non-CORS backends
+  return await fetchFromBackend('/products');
 }
 ```
 
-**That's it!** Server actions are now App Router compatible.
+Or keep the existing client `apiClient` hooks as-is — they work unchanged in App Router client
+components. Only reach for server actions where a server genuinely helps (secrets, auth, SSR).
 
 ---
 
@@ -452,8 +451,8 @@ Test each route thoroughly.
 
 ### Once Migration is Complete
 
-1. **Delete `pages/` directory** (except `pages/api/` if using API routes)
-2. **Update next.config.js** if needed
+1. **Delete `pages/` directory** (there is no `pages/api/` to keep — static export had no API routes)
+2. **Update next.config.js** — drop `output: 'export'` if you now want a server-rendered App Router app
 3. **Clean up unused code**
 
 ```bash
@@ -613,7 +612,7 @@ export async function createProductAction(data: any) {
 
 - ✅ Nested layouts without manual wrapping
 - ✅ Built-in loading/error states
-- ✅ Server Actions replace API routes
+- ✅ Optional Server Actions / server components for secrets, auth, and SSR (impossible in a static SPA)
 
 ### 3. Future-Proof
 

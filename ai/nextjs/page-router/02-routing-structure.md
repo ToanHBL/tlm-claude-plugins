@@ -40,11 +40,10 @@ src/
 │   ├── _document.tsx             # HTML document customization
 │   ├── index.tsx                 # / route (5 lines max)
 │   ├── about.tsx                 # /about route
-│   ├── products/
-│   │   ├── index.tsx             # /products route
-│   │   └── [id].tsx              # /products/:id route
-│   └── api/                      # API routes (optional)
-│       └── health.ts             # /api/health endpoint
+│   └── products/
+│       ├── index.tsx             # /products route
+│       └── [id].tsx              # /products/:id route
+│                                 # NOTE: no api/ folder — static export has no server
 ├── _modules/                     # 100% framework-agnostic business logic
 │   ├── _api/                     # React Query hooks
 │   ├── common/
@@ -502,46 +501,38 @@ export default Error;
 
 ---
 
-## API Routes
+## API Routes — NOT available in **Mode A** (static export)
 
-### Basic API Route
+> **Mode B (fullstack) is the opposite:** there, the API lives in **App Router route handlers**
+> (`app/api/**/route.ts`, Prisma-backed) while the UI stays in Page Router — see
+> `05-fullstack-nextjs-api-prisma.md`. The rule below applies to **Mode A only**. Note: legacy
+> `pages/api/*` is not used in either mode.
 
-```tsx
-// src/pages/api/health.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.status(200).json({ status: 'ok' });
-}
-```
-
-### Dynamic API Route
+**In Mode A, do not create server routes (`pages/api/*` or `app/api/*`).** A static export
+(`output: 'export'`) has no Node server to run route handlers. The export build strips them (or fails),
+so any handler is dead code that silently 404s in production.
 
 ```tsx
+// ❌ WRONG — will not run in a static export
 // src/pages/api/products/[id].ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const { id } = req.query;
-
-  if (req.method === 'GET') {
-    const product = await fetchProduct(id as string);
-    return res.status(200).json(product);
-  }
-
-  if (req.method === 'DELETE') {
-    await deleteProduct(id as string);
-    return res.status(204).end();
-  }
-
-  res.status(405).json({ message: 'Method not allowed' });
-}
+export default function handler(req, res) { /* never executes on the CDN */ }
 ```
 
-**Note**: For App Router migration, API routes can be replaced with Server Actions.
+Instead, call the **external backend directly** from a TanStack Query hook in `_modules/_api/`:
+
+```tsx
+// ✅ CORRECT — src/_modules/_api/apiClientProduct.ts
+export const useQueryDetail = (id: string) =>
+  useQuery({
+    queryKey: ['product-detail', id],
+    queryFn: () => baseFetch<Product>(`/products/${id}`), // baseFetch prefixes NEXT_PUBLIC_API_URL
+    enabled: !!id,
+  });
+```
+
+See `03-api-data-flow.md` for the full client pattern. If you genuinely need a server-side handler
+(secrets, httpOnly-cookie sessions, hiding a non-CORS backend), that requires **abandoning static export
+and deploying to a Node host** — raise it with the user before assuming it.
 
 ---
 
@@ -619,24 +610,12 @@ export default function Page() {
 }
 ```
 
-### Server-Side Redirect (getServerSideProps)
+### Server-Side Redirect (`getServerSideProps`) — NOT available
 
-```tsx
-import { GetServerSideProps } from 'next';
-
-export default function Page() {
-  return null;
-}
-
-export const getServerSideProps: GetServerSideProps = async () => {
-  return {
-    redirect: {
-      destination: '/new-path',
-      permanent: false,
-    },
-  };
-};
-```
+`getServerSideProps` runs per-request on a server, which a static export doesn't have. Do redirects
+**client-side** (the pattern above) or, for build-time known redirects, configure your static host
+(e.g. a `_redirects` / rewrite rule on the CDN). Auth-gating a route is likewise a client concern:
+check the session in the Screen/layout and `router.replace('/login')` when absent.
 
 ---
 
@@ -876,7 +855,8 @@ export function useQueryNavMenu() {
   return useQuery<NavMenuItem[]>({
     queryKey: ['nav-menu'],
     queryFn: async () => {
-      const res = await fetch('/api/nav-menu');
+      // Absolute external backend URL — NOT a relative /api/* (no server here)
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nav-menu`);
       return res.json();
     },
   });

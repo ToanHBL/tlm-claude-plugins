@@ -1,8 +1,21 @@
 # Page Router Architecture
 
+> **Scope: Mode A (static-export SPA).** This doc describes the Page Router deployed as a static export
+> with **no backend in this app**. If your project uses Next.js itself as the backend (App Router route
+> handlers `app/api/**/route.ts` + Prisma, UI still in Page Router), you are in **Mode B** — see
+> `05-fullstack-nextjs-api-prisma.md`, where server routes and a Node runtime are expected. Mode picker:
+> `skills/nextjs-page-router` → "Deployment modes".
+
 ## Overview
 
 This project uses **Next.js 15 with Page Router** configured for **static export (SPA mode)**. The architecture is designed to be framework-agnostic, making future migration to App Router or other frameworks straightforward.
+
+> ⚠️ **No server at runtime.** A static export (`output: 'export'`) ships only static files to a CDN.
+> There is **no Node server**, therefore **no `pages/api/*` route handlers, no `getServerSideProps`, and
+> no server actions** — the export build strips or rejects them. Every bit of server state is fetched
+> **directly from the browser** against the **external backend** through `apiClient[Domain].ts` TanStack
+> Query hooks. If you find yourself writing `pages/api/*` or a `_modules/server/` runtime layer, stop:
+> that code cannot run in this deployment model.
 
 ## Static Export Configuration
 
@@ -48,12 +61,8 @@ src/
 │       └── posts/index.tsx
 │
 └── _modules/                 # Framework-agnostic (100% portable)
-    ├── _api/                # React Query hooks (client-side)
+    ├── _api/                # React Query hooks — call the EXTERNAL backend directly (client-side)
     │   └── apiClientFeedback.ts
-    │
-    ├── server/              # Server-side operations
-    │   └── actions/         # Server actions pattern (NO 'use server')
-    │       └── feedback.ts  # Mock data / future API calls
     │
     ├── common/              # ONLY truly shared components
     │   ├── components/      # Col, Row, TextPrimary, Base* only
@@ -138,10 +147,10 @@ export default function HomeScreen() {
 ```
 ✅ _modules/pages/Home/HomeScreen.tsx       # Can move to any framework
 ✅ _modules/common/components/Col.tsx       # Pure React component
-✅ _modules/_api/apiClientFeedback.ts       # React Query (framework-agnostic)
-✅ _modules/server/actions/feedback.ts      # Pure functions (no Next.js deps)
+✅ _modules/_api/apiClientFeedback.ts       # React Query calling the external backend (framework-agnostic)
 
 ❌ src/pages/index.tsx                      # Next.js specific (not portable)
+❌ src/pages/api/*                          # Won't run — no server in a static export
 ```
 
 ### 4. Screen-Specific Components
@@ -265,13 +274,17 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 ✅ **React Query** - Full client-side state management
 ✅ **Framework-Agnostic** - Easy to migrate to any React framework
 
-### What Page Router CANNOT Do
-❌ **'use server' directive** - Not supported
+### What Page Router (static export) CANNOT Do
+❌ **API routes (`pages/api/*`)** - No server runs; handlers are stripped/rejected at export
+❌ **`getServerSideProps`** - No per-request server; use `getStaticProps` or client fetching
+❌ **Server Actions / `'use server'`** - Not supported; do writes with client-side mutations to the external backend
 ❌ **Server Components** - All components are client components
 ❌ **Streaming** - No React Suspense streaming
-❌ **Server Actions** - Must use API routes or client-side calls
 ❌ **Parallel Routes** - Not available
 ❌ **Intercepting Routes** - Not available
+
+**Implication:** all data — reads and writes — goes **browser → external backend directly** via
+`apiClient[Domain].ts` hooks. There is no same-origin `/api/*` and no BFF layer to lean on.
 
 ## Best Practices
 
@@ -326,34 +339,40 @@ export default function MyScreen() {
 }
 ```
 
-### 4. Server Actions Pattern (Ready for App Router)
+### 4. Data mutations are client-side (external backend)
+
+There are **no server actions** in a static export. Writes are TanStack Query mutations in
+`apiClient[Domain].ts` that POST/PUT/DELETE **directly to the external backend**. Keep the CRUD surface
+consistent so a *future* App Router migration could wrap these as server actions — but do **not** create
+a `_modules/server/` runtime folder today; it would be dead code here.
 
 ```typescript
-// Structure like server actions, even though Page Router doesn't support them
-// This makes App Router migration seamless
-
-// src/_modules/server/actions/[domain].ts
-export async function fetchAction() { }
-export async function createAction() { }
-export async function updateAction() { }
-export async function deleteAction() { }
+// src/_modules/_api/apiClient[Domain].ts  — client-side, calls external backend
+export const useQueryList   = () => useQuery({ /* GET external */ });
+export const useMutationCreate = () => useMutation({ /* POST external */ });
+export const useMutationUpdate = () => useMutation({ /* PUT external */ });
+export const useMutationDelete = () => useMutation({ /* DELETE external */ });
 ```
 
 ## When to Use Page Router vs App Router
 
-### Choose Page Router When:
-- You need static export for CDN deployment
-- You want a simpler mental model (no server/client component distinction)
-- You're building a pure SPA without server-side features
-- You want maximum hosting flexibility (any static host)
-- You're working with legacy Next.js projects
+> **Team policy: Page Router is the default; App Router is the exception** (see the `frontend-conventions`
+> skill → "Choosing the Next.js router"). Default to Page Router for management/admin/internal apps; use
+> App Router only when genuinely needed — chiefly public, SEO-facing "publish" pages.
 
-### Choose App Router When:
-- You need Server Components for better performance
-- You want to use Server Actions for data mutations
-- You need streaming and Suspense
-- You want improved SEO with server-side rendering
-- You're building new projects and want cutting-edge features
+### Choose Page Router When (the default):
+- **Management / admin / internal app** — dashboard, CRUD, back-office, authenticated tool (SEO irrelevant behind a login)
+- You want a simple client-rendered SPA with fast iteration and minimal boilerplate
+- Static-export CDN deploy (**Mode A**) *or* a fullstack app whose API is App Router route handlers under `app/api` + Prisma (**Mode B**)
+- Simpler mental model (no Server/Client Component distinction) and maximum hosting flexibility
+
+### Choose App Router When (only when needed):
+- **Public "publish" pages** — marketing, landing, blog, docs, product pages that need SEO / social metadata
+- SSR / SSG / ISR, streaming/Suspense, or edge rendering is genuinely required
+- You specifically need Server Components, Server Actions, or nested partial-render layouts
+
+> Not sufficient reasons to switch an admin app to App Router: "it's newer", "cutting-edge", or general
+> "better performance". Under this policy, migrate only when a concrete SSR/SEO/RSC need appears.
 
 ## Migration Readiness
 
@@ -361,7 +380,7 @@ The current Page Router setup is **100% ready** for App Router migration because
 
 ✅ All business logic is in `_modules/` (portable)
 ✅ All screen components have `'use client'` directive
-✅ Server actions structure is in place (just add 'use server')
+✅ Data access is isolated in `apiClient[Domain].ts` hooks (can later be wrapped as server actions)
 ✅ Pages are routing-only (easy to convert to `app/page.tsx`)
 ✅ No page-specific logic to refactor
 
@@ -378,8 +397,8 @@ The current Page Router setup is **100% ready** for App Router migration because
 | Screen components | Same | Same ✅ |
 | Business logic | Same | Same ✅ |
 
-**Key Takeaway**: The framework-agnostic architecture means migrating to App Router is just:
+**Key Takeaway**: The framework-agnostic architecture means migrating to App Router is mostly:
 1. Rename `pages/` to `app/`
 2. Rename `index.tsx` to `page.tsx`
-3. Add `'use server'` to server actions
+3. Optionally move data-access hooks behind `'use server'` server actions (App Router only)
 4. Done!

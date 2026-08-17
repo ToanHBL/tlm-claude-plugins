@@ -20,11 +20,12 @@ ai/
 │   ├── input-processing-template.md
 │   └── requirement-summary-template.md
 ├── nextjs/
-│   ├── page-router/             # Page Router specific rules (Next.js 12-14)
-│   │   ├── 01-architecture.md
+│   ├── page-router/             # Page Router specific rules (Next.js 12-15)
+│   │   ├── 01-architecture.md            # Mode A: static-export SPA
 │   │   ├── 02-routing-structure.md
-│   │   ├── 03-api-data-flow.md
-│   │   └── 04-migration-to-app-router.md
+│   │   ├── 03-api-data-flow.md           # Mode A: client → external backend
+│   │   ├── 04-migration-to-app-router.md
+│   │   └── 05-fullstack-nextjs-api-prisma.md  # Mode B: app/api/**/route.ts + Prisma backend
 │   └── app-router/              # App Router specific rules (Next.js 13+)
 │       ├── 01-architecture.md
 │       ├── 02-routing-structure.md
@@ -45,9 +46,15 @@ ai/
 
 ### For New Projects
 
-1. **Choose Your Router Pattern:**
-   - **Page Router**: Stable, proven, good for static exports
-   - **App Router**: Modern, better for SSR/SSG, server components
+1. **Choose Your Router Pattern** — policy: **Page Router by default; App Router only when needed**
+   (see the `frontend-conventions` skill → "Choosing the Next.js router"):
+   - **Page Router (default)** — management / admin / internal apps. Stable, proven. Two deployment modes:
+     **Mode A** static-export SPA (calls an external backend), or
+     **Mode B** fullstack Next.js where the UI stays in Page Router and the API is App Router
+     route handlers (`app/api/**/route.ts`) + Prisma (no SSR).
+     See `page-router/05-fullstack-nextjs-api-prisma.md` for Mode B.
+   - **App Router (only when needed)** — public, SEO-facing "publish" pages (marketing/landing/blog/docs),
+     or when SSR/SSG/ISR, streaming, or Server Components/Actions are genuinely required.
 
 2. **Read These in Order:**
    ```
