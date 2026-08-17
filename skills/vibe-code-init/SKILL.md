@@ -203,3 +203,23 @@ business rules, and the constraints. Do not dump full scan output — keep it sc
 3. Search the relevant core(s) for existing logic/dependencies the feature touches.
 4. Report reuse opportunities ("this already exists in `<core>/<path>` — extend it") **before** coding,
    then implement by extending / integrating rather than duplicating.
+
+---
+
+## SESSION-START REFERENCE REFRESH (keep cores up to date)
+
+The core clones are only useful if they reflect current core code. This plugin ships a **SessionStart
+hook** that runs automatically when a session opens: if this project has a
+`vibe-code-init-config.md`, the hook injects the config and instructs the model to **ask the user**
+whether to refresh the references. The flow the model must follow when that instruction is present:
+
+1. **Ask** (AskUserQuestion): *"This project extends {core names}. Update the core reference(s) to the
+   latest `<base>` now?"* — options: **Yes, update all** / **No, use as-is** / **Choose per core**.
+2. On **Yes**, for each core in `config.cores`:
+   - If `localPath` exists → `git -C <localPath> fetch origin --prune && git -C <localPath> checkout <baseBranch> && git -C <localPath> pull --ff-only origin <baseBranch>` (warn, don't clobber, on non-ff).
+   - If `localPath` is **missing** (never cloned, or a fresh machine) → **re-clone** it from `git` into
+     the recorded sibling path, then checkout `baseBranch`. This is the "auto-clone on session start"
+     path for teammates who don't have the core yet.
+3. Report a one-line status per core (updated to `<sha>` / cloned / skipped / failed). Keep it terse.
+
+If the user declines, do nothing and continue. Never refresh silently — always ask first.
