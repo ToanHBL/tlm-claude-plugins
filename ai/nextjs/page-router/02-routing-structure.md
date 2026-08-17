@@ -691,7 +691,7 @@ export default function Page() {
 
 1. **Read**: `page-router/03-api-data-flow.md` (data fetching)
 2. **Read**: `page-router/04-migration-to-app-router.md` (migration guide)
-3. **Reference**: `shared/03-component-patterns.md` (component rules)
+3. **Reference**: `shared-fe/03-component-patterns.md` (component rules)
 
 ---
 

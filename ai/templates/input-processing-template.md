@@ -4,7 +4,7 @@ A structured format for turning user stories, API specifications, and feature re
 actionable development tasks that follow this project's architecture.
 
 > Uses the finalized conventions: `_modules/` structure, `Col`/`Row`/`TextPrimary`, domain-implicit API
-> clients. See [`../shared/07-ai-workflow-integration.md`](../shared/07-ai-workflow-integration.md).
+> clients. See [`../shared-fe/07-ai-workflow-integration.md`](../shared-fe/07-ai-workflow-integration.md).
 
 ## User Story Processing Template
 

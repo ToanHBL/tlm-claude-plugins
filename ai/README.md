@@ -7,7 +7,7 @@ This knowledge base is organized to support both Next.js routing patterns:
 ```
 ai/
 ├── README.md                    # This file - navigation guide
-├── shared/                      # Rules applicable to BOTH routing patterns
+├── shared-fe/                      # Rules applicable to BOTH routing patterns
 │   ├── 01-project-overview.md
 │   ├── 02-styling-ui-conventions.md
 │   ├── 03-component-patterns.md
@@ -47,7 +47,7 @@ ai/
 ### For New Projects
 
 1. **Choose Your Router Pattern** — policy: **Page Router by default; App Router only when needed**
-   (see the `frontend-conventions` skill → "Choosing the Next.js router"):
+   (see the `fe-coding` skill → "Choosing the Next.js router"):
    - **Page Router (default)** — management / admin / internal apps. Stable, proven. Two deployment modes:
      **Mode A** static-export SPA (calls an external backend), or
      **Mode B** fullstack Next.js where the UI stays in Page Router and the API is App Router
@@ -58,12 +58,12 @@ ai/
 
 2. **Read These in Order:**
    ```
-   1. shared/01-project-overview.md      (Tech stack & philosophy)
+   1. shared-fe/01-project-overview.md      (Tech stack & philosophy)
    2. [router]/01-architecture.md        (Framework-specific setup)
-   3. shared/02-styling-ui-conventions.md (UI patterns)
-   4. shared/03-component-patterns.md    (Component rules)
+   3. shared-fe/02-styling-ui-conventions.md (UI patterns)
+   4. shared-fe/03-component-patterns.md    (Component rules)
    5. [router]/03-api-data-flow.md       (Data fetching)
-   6. shared/05-validation-patterns.md   (Forms & validation)
+   6. shared-fe/05-validation-patterns.md   (Forms & validation)
    ```
 
 3. **Reference As Needed:**
@@ -182,18 +182,18 @@ const handleEdit = () => {  // Don't create this
 
 ### Static E-Commerce Site (Page Router)
 ```bash
-1. Read: shared/01-project-overview.md
+1. Read: shared-fe/01-project-overview.md
 2. Read: page-router/01-architecture.md
 3. Read: page-router/02-routing-structure.md
-4. Start coding with shared/03-component-patterns.md
+4. Start coding with shared-fe/03-component-patterns.md
 ```
 
 ### SSR Dashboard (App Router)
 ```bash
-1. Read: shared/01-project-overview.md
+1. Read: shared-fe/01-project-overview.md
 2. Read: app-router/01-architecture.md
 3. Read: app-router/03-server-actions.md
-4. Start coding with shared/03-component-patterns.md
+4. Start coding with shared-fe/03-component-patterns.md
 ```
 
 ### Migrating Page Router → App Router
@@ -266,18 +266,18 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 ## 🎓 Learning Path
 
 ### Beginner
-1. shared/01-project-overview.md (tech stack)
+1. shared-fe/01-project-overview.md (tech stack)
 2. [router]/01-architecture.md (folder structure)
-3. shared/02-styling-ui-conventions.md (Tailwind CSS)
+3. shared-fe/02-styling-ui-conventions.md (Tailwind CSS)
 
 ### Intermediate
-4. shared/03-component-patterns.md (component rules)
+4. shared-fe/03-component-patterns.md (component rules)
 5. [router]/03-api-data-flow.md (data fetching)
-6. shared/05-validation-patterns.md (forms)
+6. shared-fe/05-validation-patterns.md (forms)
 
 ### Advanced
 7. [router]/03-server-actions.md (SSR patterns)
-8. shared/04-typescript-enums-constants.md (type safety)
+8. shared-fe/04-typescript-enums-constants.md (type safety)
 9. [router]/04-migration-to-app-router.md (migrations)
 
 ---
@@ -286,12 +286,12 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 
 ### Common Questions
 
-- **Where do I put this component?** → shared/03-component-patterns.md
+- **Where do I put this component?** → shared-fe/03-component-patterns.md
 - **How do I fetch data?** → [router]/03-api-data-flow.md
-- **How do I style components?** → shared/02-styling-ui-conventions.md
-- **How do I validate forms?** → shared/05-validation-patterns.md
+- **How do I style components?** → shared-fe/02-styling-ui-conventions.md
+- **How do I validate forms?** → shared-fe/05-validation-patterns.md
 - **How do I navigate?** → [router]/02-routing-structure.md
-- **How should an AI/new contributor generate code here?** → shared/07-ai-workflow-integration.md
+- **How should an AI/new contributor generate code here?** → shared-fe/07-ai-workflow-integration.md
 - **How do I turn a user story / API spec into tasks?** → templates/input-processing-template.md
 - **How do I normalize cURL/JSON into a spec?** → templates/requirement-summary-template.md
 
@@ -326,14 +326,14 @@ For questions or clarifications:
   - Consolidated component naming conventions
   - Added migration guides
 - **v1.1** (2026-08): Closed gaps from the original `resource/` source
-  - Added `shared/07-ai-workflow-integration.md` (AI/contributor operating manual:
+  - Added `shared-fe/07-ai-workflow-integration.md` (AI/contributor operating manual:
     import ordering, generation templates, testing harness, code-review checklist)
   - Added `templates/` (input-processing + requirement-summary intake templates)
   - Added Link-compliant Global Navigation sections to both `02-routing-structure.md` files
 - **v1.2** (2026-08): Added React Native (Expo) support
   - New `reactnative/` knowledge base (architecture, StyleSheet styling, Expo Router,
     AsyncStorage data flow, RHF+Zod forms) — corrected navigation to `router.navigate`
-  - New `shared/08-cross-platform-architecture.md` (web ↔ RN mapping; `_modules/` is portable to RN)
+  - New `shared-fe/08-cross-platform-architecture.md` (web ↔ RN mapping; `_modules/` is portable to RN)
 - **v1.3** (2026-08): Standardized the structural text component naming to `TextPrimary`
   - The Basic structural text component is `TextPrimary` (import `common/components/TextPrimary`);
     hierarchy is `Col`/`Row`/`TextPrimary`

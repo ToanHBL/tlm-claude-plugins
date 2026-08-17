@@ -247,7 +247,7 @@ export const DELETE = route<Params>(async (_req, { params }) => {
 ## 6. Zod input schemas
 
 Validate what crosses the wire. Reuse the same schema on the client form when practical (see
-`shared/05-validation-patterns.md`).
+`shared-fe/05-validation-patterns.md`).
 
 ```typescript
 // src/_modules/server/product/schema.ts

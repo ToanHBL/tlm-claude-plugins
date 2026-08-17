@@ -74,7 +74,7 @@ router.back();             // pop
   instead of pushing a fresh instance — usually desired; verify flows where a new instance matters.
 
 > This corrects the raw source rules, which used `router.push` freely. It matches the shared
-> `expo-router` navigation rule and the `react-native-expo` skill.
+> `expo-router` navigation rule and `06-hard-rules.md` in this folder.
 
 ## Read params — `useLocalSearchParams`
 

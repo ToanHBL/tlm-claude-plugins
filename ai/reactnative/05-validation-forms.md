@@ -1,6 +1,6 @@
 # RN Validation & Forms
 
-> Same philosophy as the web (`ai/shared/05`): React Hook Form + Zod, schema-first, no manual/state
+> Same philosophy as the web (`ai/shared-fe/05`): React Hook Form + Zod, schema-first, no manual/state
 > validation. **Default to `register()`, matching the web.** Use `Controller`/`useController` ONLY when a
 > field needs heavy customization (custom controlled component, masked input, OTP input, picker).
 >

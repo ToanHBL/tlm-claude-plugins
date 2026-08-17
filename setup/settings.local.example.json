@@ -1,0 +1,85 @@
+{
+  "//": [
+    "TEMPLATE — copy to <your-project>/.claude/settings.local.json and fill in.",
+    "This file is GITIGNORED in a real project because it holds secrets.",
+    "Run /project-setup instead of editing this by hand — it asks only the questions your",
+    "project actually needs, verifies each MCP with a real call, and writes this file for you.",
+    "Every key is documented in ./tlm-config.reference.json.",
+    "",
+    "Delete any mcpServers entry your project does not use. Keep context7 always."
+  ],
+
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@latest"]
+    },
+
+    "framelink-figma": {
+      "//": "Only if tlm.design.enabled. Token is referenced from env below — never inlined.",
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
+    }
+  },
+
+  "//mcpConnectors": [
+    "ClickUp and Slack are OAuth connectors, not stdio servers — they do NOT appear above.",
+    "Connect them at claude.ai → Settings → Connectors, then verify with /mcp in Claude Code.",
+    "Linear:  claude mcp add --transport sse linear https://mcp.linear.app/sse",
+    "GitHub Issues: no MCP — just `gh auth login`."
+  ],
+
+  "env": {
+    "//": "SECRETS. Never commit. Never echo back to the user.",
+    "FIGMA_ACCESS_TOKEN": "figd_REPLACE_ME"
+  },
+
+  "tlm": {
+    "version": 1,
+
+    "project": {
+      "name": "REPLACE_ME",
+      "type": "react-native-expo",
+      "baseBranch": "develop",
+      "apps": [
+        { "name": "Installer", "pathPrefix": "apps/installer/" },
+        { "name": "Fleet", "pathPrefix": "apps/fleet/" }
+      ]
+    },
+
+    "design": {
+      "enabled": true,
+      "tool": "figma",
+      "mcp": "framelink-figma",
+      "tokenEnvKey": "FIGMA_ACCESS_TOKEN"
+    },
+
+    "tickets": {
+      "enabled": true,
+      "system": "clickup",
+      "idPattern": "TLM-\\d+",
+      "workspaceId": "REPLACE_ME",
+      "urlTemplate": "https://app.clickup.com/t/REPLACE_ME/{id}",
+      "statuses": {
+        "inProgress": "in progress",
+        "inReview": "in review",
+        "ready": ["ready for production", "Closed"]
+      },
+      "hasDeploymentTicket": true,
+      "planDir": "_docs",
+      "branchPrefixes": { "bug": "fix", "refactor": "refactor", "default": "feat" },
+      "commentLanguage": "en"
+    },
+
+    "chat": {
+      "enabled": true,
+      "system": "slack",
+      "sendMode": "draft",
+      "channels": [
+        { "app": "Installer", "id": "C_REPLACE_ME", "name": "#install-mobile-app" }
+      ]
+    },
+
+    "docs": { "mcp": "context7" }
+  }
+}

@@ -792,8 +792,8 @@ Is SEO important?
 
 ## Next Steps
 
-1. **Read**: `shared/03-component-patterns.md` (component rules)
-2. **Read**: `shared/05-validation-patterns.md` (form validation)
+1. **Read**: `shared-fe/03-component-patterns.md` (component rules)
+2. **Read**: `shared-fe/05-validation-patterns.md` (form validation)
 3. **Reference**: `app-router/03-server-actions.md` (mutations)
 
 ---

@@ -2,11 +2,11 @@
 
 Platform-specific rules for building **React Native + Expo** apps following the shared house conventions.
 This is the RN counterpart to `ai/nextjs/`. The **cross-platform principles** it shares with the web
-live in `ai/shared/` — read those first; this folder only documents what RN does *differently*.
+live in `ai/shared-fe/` — read those first; this folder only documents what RN does *differently*.
 
 ```
 ai/
-├── shared/           # Cross-platform principles (web + RN) — read first
+├── shared-fe/           # Cross-platform principles (web + RN) — read first
 │   └── 08-cross-platform-architecture.md   # web ↔ RN mapping
 ├── nextjs/           # Web-specific (App Router / Page Router)
 └── reactnative/      # ← you are here (RN/Expo platform mechanics)
@@ -17,7 +17,7 @@ ai/
     └── 05-validation-forms.md      # RHF + Zod (register-first; Controller for custom fields)
 ```
 
-## What carries over from `shared/` (do NOT re-learn here)
+## What carries over from `shared-fe/` (do NOT re-learn here)
 - Framework-agnostic `_modules/` architecture and the thin routing layer
 - Component hierarchy (Basic → Base → Common → Domain → Screen)
 - **Function minimalism** (inline handlers + `TODO`, no `useCallback`/`useMemo` unless needed)

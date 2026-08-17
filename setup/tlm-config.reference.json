@@ -1,0 +1,345 @@
+{
+  "$comment": [
+    "MACHINE-READABLE REFERENCE — read this file to understand the `tlm` config block.",
+    "It defines every key a skill in this plugin may read: what it means, which skill consumes it,",
+    "whether it is a secret, and how the user obtains its value.",
+    "",
+    "This file is DOCUMENTATION, not a live config. The live values live in the consuming",
+    "project's .claude/settings.local.json (gitignored). See ./settings.local.example.json",
+    "for a fillable template and ./SETUP-CHECKLIST.md for the walkthrough."
+  ],
+
+  "configVersion": 1,
+
+  "storage": {
+    "primary": {
+      "path": "<project>/.claude/settings.local.json",
+      "gitignored": true,
+      "holds": [
+        "mcpServers — MCP server definitions, including any embedded API keys",
+        "env — environment variables / secrets",
+        "tlm — this plugin's non-secret project config (the block described below)"
+      ],
+      "note": "settings.local.json is the Claude Code convention for machine-local, gitignored config. Secrets MUST NOT go anywhere else in the repo."
+    },
+    "fallback": {
+      "path": "<project>/.claude/tlm.local.json",
+      "holds": ["the `tlm` block only, as the file's root object"],
+      "when": "Use only if a Claude Code version rejects or strips the unknown `tlm` key from settings.local.json. Skills read settings.local.json first, then fall back to this file."
+    },
+    "readOrder": [
+      "1. <project>/.claude/settings.local.json  → .tlm",
+      "2. <project>/.claude/tlm.local.json       → (root object)",
+      "3. not found → tell the user to run /project-setup"
+    ]
+  },
+
+  "mcpServers": {
+    "$comment": "Which MCP servers each capability needs, and when they are required.",
+
+    "context7": {
+      "required": "always",
+      "purpose": "Fetch current library/framework/SDK documentation instead of relying on training data.",
+      "usedBy": ["all skills", "the global context7 rule"],
+      "secret": false,
+      "detectBy": "tool name matches mcp__context7__* (resolve-library-id, query-docs)",
+      "install": {
+        "command": "claude mcp add context7 -- npx -y @upstash/context7-mcp@latest",
+        "settingsSnippet": {
+          "command": "npx",
+          "args": ["-y", "@upstash/context7-mcp@latest"]
+        }
+      }
+    },
+
+    "framelink-figma": {
+      "required": "when tlm.design.enabled === true",
+      "purpose": "Read Figma files/frames so a design can be turned into code.",
+      "usedBy": ["figma-to-code"],
+      "secret": true,
+      "secretKey": "FIGMA_ACCESS_TOKEN",
+      "detectBy": "tool name matches mcp__*[Ff]ramelink* or mcp__*[Ff]igma*",
+      "howToGetSecret": "Figma → your avatar → Settings → Security → Personal access tokens → Generate new token. Scope: File content (read). Token looks like figd_xxxxxxxx.",
+      "install": {
+        "settingsSnippet": {
+          "command": "npx",
+          "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
+        },
+        "note": "Prefer the ${FIGMA_ACCESS_TOKEN} form with the value in the `env` block, so the token appears exactly once and is easy to rotate. NEVER paste a figd_ token into a committed file."
+      }
+    },
+
+    "clickup": {
+      "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'clickup'",
+      "purpose": "Read/update tickets, post comments, attach QA evidence.",
+      "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
+      "secret": false,
+      "detectBy": "tool name matches mcp__*ClickUp*__clickup_get_task",
+      "install": {
+        "method": "connector",
+        "steps": "claude.ai → Settings → Connectors → ClickUp → Connect (OAuth). Then /mcp in Claude Code to confirm it is listed.",
+        "note": "OAuth — no token is stored in settings.local.json. Only the non-secret workspaceId is."
+      }
+    },
+
+    "jira": {
+      "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'jira'",
+      "purpose": "Same role as ClickUp for Jira-based projects.",
+      "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
+      "secret": true,
+      "secretKey": "JIRA_API_TOKEN",
+      "detectBy": "tool name matches mcp__*[Aa]tlassian* or mcp__*jira*",
+      "howToGetSecret": "id.atlassian.com → Security → API tokens → Create API token. Also needs the site URL (https://<org>.atlassian.net) and the account email."
+    },
+
+    "linear": {
+      "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'linear'",
+      "purpose": "Same role as ClickUp for Linear-based projects.",
+      "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
+      "secret": false,
+      "detectBy": "tool name matches mcp__*[Ll]inear*",
+      "install": {
+        "command": "claude mcp add --transport sse linear https://mcp.linear.app/sse",
+        "note": "Authenticate in the browser when prompted."
+      }
+    },
+
+    "github": {
+      "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'github'",
+      "purpose": "GitHub Issues as the ticket system. No MCP needed — uses the gh CLI.",
+      "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
+      "secret": false,
+      "detectBy": "shell: gh auth status",
+      "install": { "command": "gh auth login" }
+    },
+
+    "slack": {
+      "required": "when tlm.chat.enabled === true",
+      "purpose": "Post the release note as a DRAFT to the release channel for a human to review and send.",
+      "usedBy": ["release-notes"],
+      "secret": false,
+      "detectBy": "tool name matches mcp__*Slack*__slack_send_message_draft",
+      "install": {
+        "method": "connector",
+        "steps": "claude.ai → Settings → Connectors → Slack → Connect (OAuth). Then /mcp in Claude Code to confirm."
+      },
+      "note": "Channel IDs are NOT secrets — they live in tlm.chat.channels."
+    }
+  },
+
+  "tlm": {
+    "$comment": "Schema of the `tlm` block. Every leaf documents: what it is, who reads it, how to get it.",
+
+    "version": {
+      "type": "number",
+      "required": true,
+      "value": 1,
+      "description": "Schema version of this block. Bump when keys change meaning."
+    },
+
+    "project": {
+      "name": {
+        "type": "string",
+        "required": true,
+        "description": "Human-readable project name. Used in release-note headings.",
+        "source": "ask the user",
+        "example": "Telemax Installer"
+      },
+      "type": {
+        "type": "enum",
+        "required": true,
+        "values": ["nextjs-page-router", "nextjs-app-router", "react-native-expo", "react-native-cli", "flutter", "other"],
+        "description": "Which stack fe-coding applies. Also gates mobile-release-notes (mobile values only) and drives figma-to-code output style and deployment-checklist service mapping.",
+        "source": "auto-detect, then confirm",
+        "detect": {
+          "nextjs-app-router": "src/app/page.tsx or app/layout.tsx exists (UI in app/)",
+          "nextjs-page-router": "src/pages/_app.tsx exists; app/api/**/route.ts without app/page.tsx is Mode B of this, not App Router",
+          "react-native-expo": "package.json depends on expo AND expo-router",
+          "react-native-cli": "package.json depends on react-native without expo",
+          "flutter": "pubspec.yaml exists"
+        },
+        "mobileValues": ["react-native-expo", "react-native-cli", "flutter"],
+        "note": "fe-coding covers the four JS stacks. Flutter is recognized here only so mobile-release-notes can gate on it; there are no Flutter coding rules in ai/."
+      },
+      "baseBranch": {
+        "type": "string",
+        "required": true,
+        "description": "Branch new work is cut from and compared against.",
+        "source": "auto-detect via `git symbolic-ref refs/remotes/origin/HEAD`, then confirm",
+        "example": "develop"
+      },
+      "apps": {
+        "type": "array<object>",
+        "required": false,
+        "description": "Monorepo only. Maps a path prefix to an app name, so release-notes can tell which app a commit range belongs to.",
+        "itemShape": { "name": "string", "pathPrefix": "string" },
+        "example": [{ "name": "Installer", "pathPrefix": "apps/installer/" }]
+      }
+    },
+
+    "design": {
+      "enabled": {
+        "type": "boolean",
+        "required": true,
+        "description": "Does this project build screens from Figma designs? Gates the framelink MCP requirement.",
+        "source": "ask the user"
+      },
+      "tool": { "type": "enum", "values": ["figma"], "default": "figma" },
+      "mcp": {
+        "type": "string",
+        "default": "framelink-figma",
+        "description": "Name of the MCP server entry in mcpServers that provides design access."
+      },
+      "tokenEnvKey": {
+        "type": "string",
+        "default": "FIGMA_ACCESS_TOKEN",
+        "secret": true,
+        "description": "Name of the env key in the `env` block holding the Figma token. The TOKEN ITSELF lives in `env`, never here."
+      }
+    },
+
+    "tickets": {
+      "enabled": {
+        "type": "boolean",
+        "required": true,
+        "description": "Does this project track work in a ticket system? Gates ticket-workflow and the reconcile phase of deployment-checklist.",
+        "source": "ask the user"
+      },
+      "system": {
+        "type": "enum",
+        "required": "when enabled",
+        "values": ["clickup", "jira", "linear", "azure-devops", "github"],
+        "source": "ask the user"
+      },
+      "idPattern": {
+        "type": "string (regex)",
+        "required": "when enabled",
+        "description": "Regex matching ticket ids in commit messages and branch names.",
+        "source": "auto-detect from git history, then confirm",
+        "detectCommand": "git log --oneline -80 | grep -oiE '[A-Z]{2,}-[0-9]+' | sed -E 's/-[0-9]+//' | tr '[:lower:]' '[:upper:]' | sort | uniq -c | sort -rn | head",
+        "example": "TLM-\\d+"
+      },
+      "workspaceId": {
+        "type": "string",
+        "required": false,
+        "secret": false,
+        "description": "Workspace/team/site id, needed to build ticket URLs. ClickUp: the numeric id in any task URL. Jira: the site URL.",
+        "source": "ask the user, or read from any ticket URL they paste",
+        "example": "9016368975"
+      },
+      "urlTemplate": {
+        "type": "string",
+        "required": false,
+        "description": "Template for a ticket permalink. {id} is replaced with the ticket id.",
+        "example": "https://app.clickup.com/t/9016368975/{id}"
+      },
+      "statuses": {
+        "inProgress": { "type": "string", "description": "Status set when work starts.", "example": "in progress" },
+        "inReview": { "type": "string", "description": "Status set when work is submitted.", "example": "in review" },
+        "ready": {
+          "type": "array<string>",
+          "description": "Statuses that mean 'safe to ship'. Everything else is flagged in a release check.",
+          "example": ["ready for production", "Closed"]
+        },
+        "source": "fetch one real ticket with statuses expanded, show the user the real vocabulary, then ask"
+      },
+      "hasDeploymentTicket": {
+        "type": "boolean",
+        "description": "Does the project use a single release/deployment ticket whose notes list what ships? Controls deployment-checklist PHASE 4.",
+        "source": "ask the user"
+      },
+      "planDir": {
+        "type": "string",
+        "default": "_docs",
+        "description": "Directory where ticket-workflow writes its per-ticket plan file (<planDir>/<TICKET>.md)."
+      },
+      "branchPrefixes": {
+        "type": "object",
+        "default": { "bug": "fix", "refactor": "refactor", "default": "feat" },
+        "description": "Maps a ticket's kind to the git branch prefix. Branch = <prefix>/<TICKET>-<kebab-summary>."
+      },
+      "commentLanguage": {
+        "type": "string",
+        "default": "en",
+        "description": "Language for plan files and ticket comments, regardless of the chat language."
+      }
+    },
+
+    "chat": {
+      "enabled": {
+        "type": "boolean",
+        "required": true,
+        "description": "Does this project announce releases in a chat tool? Gates the Slack MCP requirement and the release-notes posting phase.",
+        "source": "ask the user"
+      },
+      "system": { "type": "enum", "values": ["slack"], "default": "slack" },
+      "sendMode": {
+        "type": "enum",
+        "values": ["draft", "send"],
+        "default": "draft",
+        "description": "ALWAYS prefer 'draft'. A draft lets a human review before it reaches an external/shared channel. 'send' requires explicit per-run user confirmation."
+      },
+      "channels": {
+        "type": "array<object>",
+        "required": "when enabled",
+        "description": "Release channels. `app` matches a project.apps[].name so a monorepo posts to the right place.",
+        "itemShape": { "app": "string", "id": "string (Cxxxxxxxx)", "name": "string (#channel-name)" },
+        "source": "ask the user; the id is visible in Slack → channel → View channel details → bottom",
+        "example": [{ "app": "Installer", "id": "C0BKAUQG4HJ", "name": "#install-mobile-app" }]
+      }
+    },
+
+    "docs": {
+      "mcp": { "type": "string", "default": "context7", "description": "MCP used to fetch up-to-date library docs. Always required." }
+    }
+  },
+
+  "skillRequirements": {
+    "$comment": "Reverse index — what each skill needs before it can run. A skill MUST check this and, if something is missing, ask the user for it inline (during planning) rather than failing.",
+
+    "fe-coding": {
+      "mcp": ["context7"],
+      "config": ["tlm.project.type"],
+      "secrets": [],
+      "ifMissing": "Auto-detect the stack from the repo, confirm with the user, then offer to persist it. Never blocks."
+    },
+    "figma-to-code": {
+      "mcp": ["context7", "framelink-figma"],
+      "config": ["tlm.project.type", "tlm.design.enabled"],
+      "secrets": ["FIGMA_ACCESS_TOKEN"],
+      "ifMissing": "HARD STOP — this is the one skill that must not degrade. If the Figma MCP is absent, unauthorized, or the fetch errors, report the specific failure and write NO UI code. Never approximate a design from a frame name, screenshot, or description: a guessed screen looks finished, so nobody re-checks it. Non-UI work in the same request may still proceed."
+    },
+    "ticket-workflow": {
+      "mcp": ["context7", "<the MCP for tlm.tickets.system>"],
+      "config": ["tlm.tickets.system", "tlm.tickets.idPattern", "tlm.tickets.statuses", "tlm.project.baseBranch"],
+      "secrets": [],
+      "ifMissing": "Ask for the ticket system + id pattern inline, verify with one real test fetch, then persist to settings.local.json before continuing. If the tracker is unreachable, offer local-only mode: branch + plan + implementation, ticket sync deferred."
+    },
+    "mobile-release-notes": {
+      "mcp": ["context7", "<the MCP for tlm.tickets.system>", "slack (only if tlm.chat.enabled)"],
+      "config": ["tlm.project.type (must be one of mobileValues)", "tlm.tickets.urlTemplate", "tlm.chat.channels", "tlm.project.apps"],
+      "secrets": [],
+      "ifMissing": "Ask for the release channel id and the build numbers inline. If Slack is unavailable, still produce the note and print it for manual posting. If the project is web-only, stop and point at deployment-checklist instead."
+    },
+    "rule-capture": {
+      "mcp": [],
+      "config": [],
+      "secrets": [],
+      "ifMissing": "No config needed. Reads ai/ and skills/ from the plugin, plus the project's CLAUDE.md and memory."
+    },
+    "deployment-checklist": {
+      "mcp": ["<the MCP for tlm.tickets.system>"],
+      "config": ["tlm.tickets.*", "tlm.project.baseBranch"],
+      "secrets": [],
+      "ifMissing": "Falls back to its own PHASE 0 bootstrap."
+    }
+  },
+
+  "rules": [
+    "NEVER write a secret into any file that is not gitignored. settings.local.json only.",
+    "NEVER print a secret value back to the user or into a commit, comment, or log.",
+    "A missing value is asked for INLINE during planning — never silently defaulted, never a hard stop.",
+    "After collecting a value at runtime, offer to persist it so the next run does not ask again.",
+    "Verify a newly configured integration with one real read (fetch a ticket, resolve a Figma file) before relying on it."
+  ]
+}

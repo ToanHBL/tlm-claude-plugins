@@ -824,8 +824,8 @@ export const useMutationName = () => {
 ## Next Steps
 
 1. **Read**: `app-router/04-data-fetching.md` (fetching patterns)
-2. **Read**: `shared/05-validation-patterns.md` (form validation)
-3. **Reference**: `shared/03-component-patterns.md` (component rules)
+2. **Read**: `shared-fe/05-validation-patterns.md` (form validation)
+3. **Reference**: `shared-fe/03-component-patterns.md` (component rules)
 
 ---
 

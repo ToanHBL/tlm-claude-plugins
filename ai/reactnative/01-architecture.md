@@ -1,7 +1,7 @@
 # RN Architecture, Build & State
 
 > Shared principles (portable `_modules/`, component hierarchy, function minimalism) live in
-> `ai/shared/`. This file covers the **RN/Expo-specific** setup.
+> `ai/shared-fe/`. This file covers the **RN/Expo-specific** setup.
 
 ## Tech Stack
 - **React Native 0.79** with **Expo ~53** (SDK 50+ for built-in Expo Router)
@@ -55,7 +55,7 @@ src/ (or root)
 
 **Routing layer is thin.** `app/` (Expo Router) or `App.tsx` files only import and render a Screen from
 `_modules/screens/`. All hooks, state, and logic live in the Screen. (Same rule as web — see
-`ai/shared/01`.)
+`ai/shared-fe/01`.)
 
 ## Build & Run
 
@@ -88,7 +88,7 @@ global state.
 - **Client-readable env vars must be prefixed `EXPO_PUBLIC_`** (e.g. `EXPO_PUBLIC_API_BASE_URL`).
 
 ## Enums & Constants (RN specifics)
-Follows `ai/shared/04` (E-prefixed enums, const objects over string literals). RN adds:
+Follows `ai/shared-fe/04` (E-prefixed enums, const objects over string literals). RN adds:
 - **`EAsyncStorageKey`** — typed keys for AsyncStorage (`AUTH_TOKEN`, `USER_PREFS`, …).
 - **Route constants** in `_modules/values/routes.ts` (Expo Router paths — see `03-navigation`).
 - **Theme-coupled enum maps** (label/color per enum value) reference `values/theme` — see `02-styling`.

@@ -681,7 +681,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 
 1. **Read**: `app-router/03-server-actions.md` (data mutations)
 2. **Read**: `app-router/04-data-fetching.md` (fetching patterns)
-3. **Reference**: `shared/03-component-patterns.md` (component rules)
+3. **Reference**: `shared-fe/03-component-patterns.md` (component rules)
 
 ---
 

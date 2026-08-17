@@ -105,6 +105,94 @@ export default function BaseButton({ onPress, children, variant = 'primary', siz
 `<BaseInput name="email" .../>` with no `Controller` boilerplate. Reserve `Controller`/`useController`
 for genuinely custom fields (see `05-validation-forms.md`).
 
+## Responsive sizing — `scale()`
+
+RN has no CSS breakpoints, but device widths still range from a 5" phone to a tablet. Fixed pixel
+values that look right on the design device are cramped or comically small elsewhere. **Every icon size
+and every fixed dimension goes through `scale()`**, which maps a design-baseline value onto the actual
+screen width.
+
+Put it in the shared utils (`_modules/common/utils/mixins.ts`) alongside `scaleFont`:
+
+```ts
+// _modules/common/utils/mixins.ts
+import { Dimensions, PixelRatio } from 'react-native';
+
+const BASE_WIDTH = 375; // design baseline (iPhone X-class)
+const { width } = Dimensions.get('window');
+
+/** Scale a design-baseline dimension to the current screen width. */
+export const scale = (size: number) =>
+  PixelRatio.roundToNearestPixel((width / BASE_WIDTH) * size);
+
+/** Scale a font size — damped so text doesn't balloon on tablets. */
+export const scaleFont = (size: number) => scale(size) * 0.9;
+```
+
+```tsx
+import { scale, scaleFont } from '@/_modules/common/utils/mixins';
+
+// ❌ Fixed pixels — wrong on every device that isn't the design device
+<IconCheck size={20} />
+<View style={{ width: 48, height: 48 }} />
+
+// ✅
+<IconCheck size={scale(20)} />
+```
+
+```ts
+const styles = StyleSheet.create({
+  avatar: { width: scale(48), height: scale(48), borderRadius: scale(24) },
+  title:  { fontSize: scaleFont(18) },
+  card:   { padding: Spacing.md, minHeight: scale(64) },
+});
+```
+
+**What gets scaled:**
+
+| Scale it | Leave it |
+|----------|----------|
+| Icon `size` props | `flex`, `flexGrow`, percentage widths (`'100%'`) |
+| Fixed `width` / `height` / `minHeight` | `borderWidth: 1` (hairlines) |
+| `borderRadius` on sized elements | Values already read from theme constants (`Spacing`, `Radius`) — those are pre-scaled once, at definition |
+| `fontSize` — via `scaleFont`, not `scale` | Opacity, z-index, durations |
+
+**Define theme constants pre-scaled, once** — then screens use the token and never call `scale()` on it
+again (double-scaling is the common bug):
+
+```ts
+// _modules/config/theme.ts
+export const Spacing = { xs: scale(4), sm: scale(8), md: scale(16), lg: scale(24) };
+export const Radius  = { sm: scale(6), md: scale(12), full: 9999 };
+```
+
+## Conditional blocks — reserve space, don't unmount
+
+Same rule as web (`ai/shared-fe/02` → "Avoid Layout Flicker"): a block appearing **mid-layout** (error
+banner, validation message) must always render, with space reserved via `minHeight: scale(n)`; only the
+inner content toggles, and the background goes transparent when inactive.
+
+```tsx
+// ✅ Container always occupies space — nothing below it jumps
+<Row style={[styles.formError, !formError && styles.formErrorHidden]} accessibilityRole="alert">
+  {formError && <IconWarning size={scale(16)} color={Colors.danger} />}
+  {formError && <TextPrimary style={styles.formErrorText}>{formError}</TextPrimary>}
+</Row>
+```
+
+```ts
+formError: {
+  minHeight: scale(45), // reserve space so the layout doesn't jump when the error toggles
+  alignItems: 'center',
+  paddingHorizontal: Spacing.sm,
+  backgroundColor: Colors.dangerSoft,
+},
+formErrorHidden: { backgroundColor: 'transparent' },
+```
+
+Use `minHeight`, not `height`, so multi-line messages can still grow. A block at the **end** of a
+layout is exempt — nothing below it to push.
+
 ## Animation — Moti (optional, Framer-Motion equivalent)
 
 > Animations are optional — Moti / Reanimated are **not** default dependencies (see `01-architecture`
@@ -129,6 +217,9 @@ const logo = require('../../assets/logo.png');           // static
 1. Always `StyleSheet.create` — never inline style objects.
 2. Use theme constants (`Colors`, `Spacing`, `FontSize`, `Radius`) — never hardcoded values.
 3. `Col`/`Row` instead of raw `<View style={{ flexDirection }}>`; `TextPrimary` instead of raw `<Text>`.
-4. **Mobile-only** — no responsive breakpoints.
+4. **Mobile-only** — no responsive breakpoints; use `scale()` for every icon size and fixed dimension,
+   `scaleFont()` for font sizes. Theme constants are pre-scaled once — never `scale()` them again.
 5. **Safe area** — wrap root screens with `SafeAreaView` from `react-native-safe-area-context`.
 6. **Platform differences** — `Platform.OS === 'ios'` for platform-specific tweaks.
+7. **No layout flicker** — mid-layout conditional blocks always render with `minHeight: scale(n)`
+   reserved; only the inner content toggles.

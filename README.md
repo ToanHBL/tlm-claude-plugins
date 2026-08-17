@@ -84,7 +84,7 @@ Review of the existing global rules (`~/.claude/rules/` and `~/.claude-telemax/r
 knowledge base, with the changes this repo makes.
 
 ### ✅ What this repo already fixed
-- **Closed the `resource/` → `ai/` gaps**: added `shared/07-ai-workflow-integration.md`, the two
+- **Closed the `resource/` → `ai/` gaps**: added `shared-fe/07-ai-workflow-integration.md`, the two
   `templates/`, and Link-compliant Global Navigation sections. (`ai/` is now the single source of truth;
   `resource/` can be archived.)
 - **Packaged the conventions as skills** so they trigger automatically instead of relying on the reader.

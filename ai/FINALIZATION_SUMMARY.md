@@ -18,7 +18,7 @@ The `ai_finalize` folder is a **comprehensive, production-ready Next.js knowledg
 ai_finalize/
 ├── README.md                    # Master navigation guide
 ├── FINALIZATION_SUMMARY.md      # This document
-├── shared/                      # Rules for BOTH routing patterns
+├── shared-fe/                      # Rules for BOTH routing patterns
 │   ├── 01-project-overview.md
 │   ├── 02-styling-ui-conventions.md
 │   ├── 03-component-patterns.md
@@ -76,7 +76,7 @@ ai_finalize/
 
 ✅ **AI Workflow Integration** - Ready to add
 - Template for AI tool usage with codebase
-- Can be added as `shared/07-ai-workflow-integration.md`
+- Can be added as `shared-fe/07-ai-workflow-integration.md`
 
 ### Corrections Made
 
@@ -106,12 +106,12 @@ ai_finalize/
 **Step 2: Follow Reading Order**
 
 ```
-1. shared/01-project-overview.md       # Tech stack & philosophy
+1. shared-fe/01-project-overview.md       # Tech stack & philosophy
 2. [router]/01-architecture.md         # Framework setup
-3. shared/02-styling-ui-conventions.md # UI patterns
-4. shared/03-component-patterns.md     # Component rules
+3. shared-fe/02-styling-ui-conventions.md # UI patterns
+4. shared-fe/03-component-patterns.md     # Component rules
 5. [router]/03-api-data-flow.md        # Data fetching
-6. shared/05-validation-patterns.md    # Forms
+6. shared-fe/05-validation-patterns.md    # Forms
 ```
 
 ### For Existing Projects
@@ -334,7 +334,7 @@ Migrating? → Use migration guide
 
 ### Optional Enhancements
 
-- [ ] Add `shared/07-ai-workflow-integration.md` (from docs folder)
+- [ ] Add `shared-fe/07-ai-workflow-integration.md` (from docs folder)
 - [ ] Add templates for common patterns (forms, lists, modals)
 - [ ] Create quick-start project scaffolding scripts
 - [ ] Add testing patterns documentation
@@ -374,7 +374,7 @@ Migrating? → Use migration guide
 When Next.js releases new features:
 
 1. Determine if feature is router-specific or shared
-2. Update appropriate folder (`shared/`, `page-router/`, or `app-router/`)
+2. Update appropriate folder (`shared-fe/`, `page-router/`, or `app-router/`)
 3. Update README.md if navigation changes
 4. Update this FINALIZATION_SUMMARY.md with changes
 
