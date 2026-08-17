@@ -8,6 +8,7 @@
     "description": "Frontend engineering skills & rules marketplace.",
     "version": "1.0.0"
   },
+  "allowCrossMarketplaceDependenciesOn": ["understand-anything"],
   "plugins": [
     {
       "name": "tlm-claude-plugins",
@@ -16,6 +17,14 @@
       "version": "1.0.0",
       "category": "development",
       "keywords": ["nextjs", "react-native", "expo-router", "frontend"]
+    },
+    {
+      "name": "ask-project-anything",
+      "source": "./ask-project-anything",
+      "description": "Onboard any codebase in 3 steps — init (SSH-clone & remember a source), analyze (via understand-anything), then ask the AI about its business logic.",
+      "version": "1.0.0",
+      "category": "development",
+      "keywords": ["codebase", "onboarding", "business-logic", "knowledge-graph", "understand-anything"]
     }
   ]
 }
