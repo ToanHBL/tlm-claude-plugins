@@ -7,7 +7,7 @@ This knowledge base is organized to support both Next.js routing patterns:
 ```
 ai/
 ├── README.md                    # This file - navigation guide
-├── shared-fe/                      # Rules applicable to BOTH routing patterns
+├── shared-fe/                   # Cross-stack frontend rules (web + React Native)
 │   ├── 01-project-overview.md
 │   ├── 02-styling-ui-conventions.md
 │   ├── 03-component-patterns.md
@@ -25,20 +25,27 @@ ai/
 │   │   ├── 02-routing-structure.md
 │   │   ├── 03-api-data-flow.md           # Mode A: client → external backend
 │   │   ├── 04-migration-to-app-router.md
-│   │   └── 05-fullstack-nextjs-api-prisma.md  # Mode B: app/api/**/route.ts + Prisma backend
+│   │   ├── 05-fullstack-nextjs-api-prisma.md  # Mode B: app/api/**/route.ts + Prisma backend
+│   │   └── 06-hard-rules.md          # ★ enforceable rule set (fe-coding inlines the top few)
 │   └── app-router/              # App Router specific rules (Next.js 13+)
 │       ├── 01-architecture.md
 │       ├── 02-routing-structure.md
 │       ├── 03-server-actions.md
-│       └── 04-data-fetching.md
-└── reactnative/                 # React Native (Expo) specific rules
+│       ├── 04-data-fetching.md
+│       └── 06-hard-rules.md          # ★ enforceable rule set
+└── reactnative/                 # React Native — Expo Router + RN CLI
     ├── README.md
     ├── 01-architecture.md            # Expo stack, _modules, EAS build, state
-    ├── 02-styling-stylesheet.md      # StyleSheet + theme constants, Moti
+    ├── 02-styling-stylesheet.md      # StyleSheet, theme constants, scale(), Moti
     ├── 03-navigation-expo-router.md  # Expo Router (navigate-not-push)
     ├── 04-data-and-storage.md        # baseFetch + AsyncStorage, TanStack Query
-    └── 05-validation-forms.md        # RHF + Zod (register-first; Controller only for custom inputs)
+    ├── 05-validation-forms.md        # RHF + Zod (register-first; Controller only for custom inputs)
+    └── 06-hard-rules.md              # ★ enforceable rule set (Expo + CLI differences)
 ```
+
+> **★ `06-hard-rules.md`** — the enforceable rules per stack. The `fe-coding` skill inlines the most
+> critical ones so they hold without a file read; these files carry the full set plus the reasoning.
+> The `fe-coding` skill detects which stack applies and routes here.
 
 ---
 

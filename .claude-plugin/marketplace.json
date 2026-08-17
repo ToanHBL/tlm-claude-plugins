@@ -6,25 +6,16 @@
   },
   "metadata": {
     "description": "Frontend engineering skills & rules marketplace.",
-    "version": "1.0.0"
+    "version": "2.0.0"
   },
-  "allowCrossMarketplaceDependenciesOn": ["understand-anything"],
   "plugins": [
     {
       "name": "tlm-claude-plugins",
       "source": "./",
-      "description": "Universal skills to code Next.js (App/Page Router) and React Native (Expo Router).",
-      "version": "1.0.0",
+      "description": "Frontend coding conventions (Next.js App/Page Router, React Native Expo/CLI) plus the workflow around them — project setup, Figma-to-code, ticket workflow, mobile release notes, deployment checks, rule capture.",
+      "version": "2.0.0",
       "category": "development",
-      "keywords": ["nextjs", "react-native", "expo-router", "frontend"]
-    },
-    {
-      "name": "ask-project-anything",
-      "source": "./ask-project-anything",
-      "description": "Onboard any codebase in 3 steps — init (SSH-clone & remember a source), analyze (via understand-anything), then ask the AI about its business logic.",
-      "version": "1.0.0",
-      "category": "development",
-      "keywords": ["codebase", "onboarding", "business-logic", "knowledge-graph", "understand-anything"]
+      "keywords": ["nextjs", "react-native", "expo-router", "frontend", "figma", "clickup", "slack", "prisma", "release-notes"]
     }
   ]
 }

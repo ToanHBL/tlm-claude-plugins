@@ -1,7 +1,7 @@
 {
   "name": "tlm-claude-plugins",
-  "version": "1.0.0",
-  "description": "Universal frontend coding skills for Next.js (App Router + Page Router) and React Native (Expo Router), built on the finalized knowledge base. Enforces the _modules architecture, Link-only navigation, component hierarchy, function minimalism, and Zod/React-Hook-Form validation.",
+  "version": "2.0.0",
+  "description": "Frontend coding conventions plus the workflow around them. One fe-coding skill detects the stack (Next.js App/Page Router, React Native Expo/CLI, Next.js API + Prisma) and applies the _modules architecture, component hierarchy, Link-only navigation, function minimalism, visible empty states and Zod/React-Hook-Form validation. Workflow skills cover project setup, Figma-to-code, ticket workflow, mobile release notes, deployment checks, and capturing corrections as rules.",
   "keywords": [
     "nextjs",
     "app-router",
@@ -10,6 +10,11 @@
     "expo-router",
     "typescript",
     "tanstack-query",
-    "tailwind"
+    "tailwind",
+    "prisma",
+    "figma",
+    "clickup",
+    "slack",
+    "release-notes"
   ]
 }

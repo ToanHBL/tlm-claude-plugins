@@ -1,21 +1,24 @@
 ---
 name: project-setup
-description: Interactive setup walkthrough for this plugin's workflow skills — asks which integrations the project uses (Figma design, ticket system, Slack), checks the required MCP servers, collects the keys/secrets and project facts, then writes .claude/settings.local.json. Also the repair path when a skill reports missing or broken config. TRIGGER whenever the user says "project setup", "setup config", "setup mcp", "config skill", "thiếu config", "setup dự án", "cấu hình mcp", when a workflow skill reports a missing tlm config, or when onboarding this plugin into a new repo.
+description: Scan this project for missing workflow-skill config, ask the gating questions in ONE round, then present a single fill-in form for every value the user must supply — each with instructions on where to get it — and write .claude/settings.local.json. Also the repair path when a skill reports missing or broken config. TRIGGER whenever the user says "project setup", "setup config", "setup mcp", "config skill", "thiếu config", "setup dự án", "cấu hình mcp", when a workflow skill reports a missing tlm config, or when onboarding this plugin into a new repo.
 ---
 
-Configure this project for the workflow skills (`figma-to-code`, `ticket-workflow`, `release-notes`,
-`deployment-checklist`) in one interactive pass:
+Configure this project for the workflow skills (`figma-to-code`, `ticket-workflow`,
+`mobile-release-notes`, `deployment-checklist`) with **one round of questions and one form**:
 
-**Load existing → Ask 4 gating questions → Check only what's needed → Collect & verify → Write → Report**
+**Scan → Ask once (gating) → Show ONE fill-in form → Verify → Write → Report**
+
+The rule that shapes this skill: **never drip-feed questions.** Detect everything detectable first, ask
+all the gating questions in a single call, then collect every remaining value in a single form. A user
+should never be asked for a Figma token, then later a channel id, then later a workspace id.
 
 Everything lands in `<project>/.claude/settings.local.json` — the Claude Code convention for
 machine-local, gitignored config. Nothing is written to a committed file.
 
-> **Working language:** English by default for written config and file content, regardless of the
-> language the user triggers in. Match the user's language when talking to them.
+> **Working language:** English for written config and file content, regardless of the language the user
+> triggers in. Match the user's language when talking to them.
 
-**Reference files** — bundled with this plugin, so they resolve from **any** project it's installed in.
-Read them rather than reinventing the schema:
+**Reference files** — bundled with this plugin, so they resolve from **any** project it's installed in:
 
 ```bash
 ls "${CLAUDE_PLUGIN_ROOT}/setup/"
@@ -26,183 +29,235 @@ ls "${CLAUDE_PLUGIN_ROOT}/setup/"
 - `${CLAUDE_PLUGIN_ROOT}/setup/settings.local.example.json` — fillable template
 
 If `CLAUDE_PLUGIN_ROOT` is unset (skill copied into `~/.claude/skills/` rather than installed as a
-plugin), look for `setup/` beside the skill directory, then fall back to the schema documented inline
-in PHASE 3 — never block on a missing reference file.
+plugin), look for `setup/` beside the skill directory, then fall back to the schema documented in
+PHASE 4 — never block on a missing reference file.
 
-**Input**: optionally a capability to (re)configure — `/project-setup figma`, `/project-setup slack`.
-With an argument, run only that section and leave the rest untouched.
+**Input**: optionally one capability to (re)configure — `/project-setup figma`, `/project-setup slack`,
+`/project-setup tickets`. With an argument, scan and fix only that section and leave the rest untouched.
 
 ---
 
-## PHASE 0 — LOAD WHAT ALREADY EXISTS
+## PHASE 0 — SCAN
+
+Gather **everything** before asking anything. Run these together.
+
+### 0.1 Existing config
 
 ```bash
 CFG=".claude/settings.local.json"
 [ -f "$CFG" ] && cat "$CFG" || echo "__NO_CONFIG__"
 [ -f ".claude/tlm.local.json" ] && cat ".claude/tlm.local.json" || true
+git check-ignore -v .claude/settings.local.json 2>/dev/null || echo "__NOT_IGNORED__"
 ```
 
-- **Valid `tlm` block found** → announce *"Loaded existing setup ({N} integrations configured)"*, then
-  jump to **PHASE 3** and re-verify each configured integration. Offer to add or change one.
-- **`__NO_CONFIG__` / invalid JSON** → full run below. If the JSON is malformed, show the parse error
-  and ask before overwriting — never silently clobber a file the user hand-edited.
+- **Valid `tlm` block found** → this is a **repair run**. Keep every value that's already good; the form
+  in PHASE 2 lists only what's missing, placeholder (`REPLACE_ME`), or failing verification.
+- **Malformed JSON** → show the parse error and ask before overwriting. Never silently clobber a
+  hand-edited file.
+- **`__NOT_IGNORED__`** → add `.claude/settings.local.json` to `.gitignore` **first**, and say so. Never
+  put a secret in a tracked file.
 
-**Before writing anything, confirm the file is gitignored:**
-
-```bash
-git check-ignore -v .claude/settings.local.json || echo "__NOT_IGNORED__"
-```
-
-On `__NOT_IGNORED__`, add `.claude/settings.local.json` to `.gitignore` **first** and say so. Never put
-a secret in a tracked file.
-
----
-
-## PHASE 1 — DETECT, THEN ASK FOUR GATING QUESTIONS
-
-First auto-detect what you can, so the questions come pre-answered:
+### 0.2 Project facts
 
 ```bash
 git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#origin/##'   # base branch
-ls src/app/layout.tsx src/pages/_app.tsx 2>/dev/null                                # router type
-grep -l '"expo"\|"expo-router"\|"react-native"' package.json 2>/dev/null
+ls src/app/page.tsx src/app/layout.tsx src/pages/_app.tsx 2>/dev/null              # router type
+ls src/app/api 2>/dev/null && echo "has app/api"
+ls pubspec.yaml 2>/dev/null && echo "flutter"
+grep -o '"\(expo\|expo-router\|react-native\|next\)"' package.json 2>/dev/null | sort -u
 git log --oneline -80 | grep -oiE '[A-Z]{2,}-[0-9]+' | sed -E 's/-[0-9]+//' \
   | tr '[:lower:]' '[:upper:]' | sort | uniq -c | sort -rn | head -3               # ticket prefix
+ls apps/ packages/ 2>/dev/null                                                      # monorepo apps
 ```
 
-Project type mapping: `src/app/` + `layout.tsx` → `nextjs-app-router` · `src/pages/_app.tsx` →
-`nextjs-page-router` · `expo` + `expo-router` → `react-native-expo` · `react-native` without `expo` →
-`react-native-cli`.
+Stack mapping: `src/app/page.tsx` → `nextjs-app-router` · `src/pages/_app.tsx` → `nextjs-page-router`
+(`app/api/**` without `app/page.tsx` is its Mode B) · `expo` + `expo-router` → `react-native-expo` ·
+`react-native` without `expo` → `react-native-cli` · `pubspec.yaml` → `flutter`.
 
-Then ask with **AskUserQuestion** — one call, four questions, detected values shown as the first
-option so confirming is one click:
+### 0.3 MCP availability
 
-1. **Project type?** → `tlm.project.type` (detected value first)
-2. **Build screens from Figma designs?** → gates PHASE 2b
-3. **Ticket system?** ClickUp / Jira / Linear / Azure DevOps / GitHub Issues / None → gates PHASE 2c
-4. **Announce releases in Slack?** → gates PHASE 2d
+Use **ToolSearch** to check which are actually present: `mcp__context7__*`,
+`mcp__*[Ff]ramelink*`/`mcp__*[Ff]igma*`, `mcp__*ClickUp*`/`*[Aa]tlassian*`/`*[Ll]inear*`,
+`mcp__*Slack*`. Also `gh auth status` if GitHub Issues is plausible.
 
-Skip any question the argument already scoped out.
+Being listed is not proof it works — that's PHASE 3's job. Here you only need present vs absent.
 
 ---
 
-## PHASE 2 — CHECK & COLLECT, ONLY WHAT THE ANSWERS REQUIRE
+## PHASE 1 — ASK ONCE (gating questions only)
 
-For each required integration: **check availability → guide setup if absent → collect values → verify
-with one real call.** Use **ToolSearch** to confirm an MCP's tools actually exist; "listed in `/mcp`" is
-not proof it works.
+**One AskUserQuestion call. Four questions. Detected value as the first option** so confirming is one
+click. These four decide which sections exist at all — nothing else is asked here.
 
-When the user must run something themselves (a connector OAuth, `gh auth login`, `az login`), tell them
-to run it via the `! <command>` prefix in the prompt or `/mcp`, then **wait and re-verify**. Don't mark
-a step done on their say-so alone — re-run the check.
+1. **Project type?** → `tlm.project.type` (detected value first)
+2. **Build screens from Figma designs?** → gates the design section
+3. **Ticket system?** ClickUp / Jira / Linear / Azure DevOps / GitHub Issues / None → gates tickets
+4. **Announce releases in chat (Slack)?** → gates chat
 
-### 2a. context7 — always
+Skip any question the skill argument already scoped out, or that existing config already answers on a
+repair run. If all four are already answered, go straight to PHASE 2.
 
-Detect: tools matching `mcp__context7__*`.
-If absent: `claude mcp add context7 -- npx -y @upstash/context7-mcp@latest`
-Verify: `resolve-library-id` on a known library (e.g. "next.js") returns a hit.
+---
 
-### 2b. Framelink Figma — only if answer 2 was yes
+## PHASE 2 — SHOW ONE FILL-IN FORM
 
-Detect: tools matching `mcp__*[Ff]ramelink*` or `mcp__*[Ff]igma*`.
+Now you know exactly which values are needed and which you already have. Present **everything
+outstanding at once**, as a form the user fills in one pass.
 
-Collect `FIGMA_ACCESS_TOKEN`. Tell the user exactly where to get it: *Figma → avatar → Settings →
-Security → Personal access tokens → Generate new token, scope **File content (read)*** — it starts with
-`figd_`.
+**Write the form to `.claude/settings.local.json`** with detected values already filled and each missing
+value marked `<<FILL: what it is>>`, with a comment giving the exact steps to obtain it:
 
-Write it to `env.FIGMA_ACCESS_TOKEN` and reference it from the server args:
-
-```json
-"framelink-figma": {
-  "command": "npx",
-  "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
+```jsonc
+{
+  "mcpServers": {
+    "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp@latest"] },
+    "framelink-figma": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
+    }
+  },
+  "env": {
+    // Figma → avatar → Settings → Security → Personal access tokens → Generate new token
+    // Scope: "File content" (read). Starts with figd_
+    "FIGMA_ACCESS_TOKEN": "<<FILL: Figma personal access token>>"
+  },
+  "tlm": {
+    "version": 1,
+    "project": { "name": "acme-installer", "type": "react-native-expo", "baseBranch": "develop" },
+    "tickets": {
+      "enabled": true,
+      "system": "clickup",
+      "idPattern": "TLM-\\d+",
+      // Paste any ticket URL and I'll fill workspaceId + urlTemplate from it:
+      //   https://app.clickup.com/t/<workspaceId>/TLM-1234
+      "workspaceId": "<<FILL: from any ticket URL>>",
+      "urlTemplate": "<<FILL: derived from the URL above>>",
+      // I'll fetch one real ticket and show you the actual status names to pick from
+      "statuses": { "inProgress": "<<FILL>>", "inReview": "<<FILL>>", "ready": ["<<FILL>>"] }
+    },
+    "chat": {
+      "enabled": true, "system": "slack", "sendMode": "draft",
+      // Slack → open the channel → View channel details → id at the bottom (starts with C)
+      "channels": [{ "app": "Installer", "id": "<<FILL: channel id>>", "name": "<<FILL: #channel>>" }]
+    }
+  }
 }
 ```
 
-**Never inline the token into the args.** Never echo it back in your reply.
-Verify: ask for any Figma file URL and confirm metadata comes back.
+Then print **one compact table** in the terminal — the actual form, so the user can answer in chat
+without opening the file:
 
-### 2c. Ticket system — only if answer 3 wasn't None
+```
+Fill these in (edit .claude/settings.local.json, or just paste the values here):
 
-| System | Detect | If absent |
-|--------|--------|-----------|
-| ClickUp | `mcp__*ClickUp*__clickup_get_task` | claude.ai → Settings → Connectors → ClickUp → Connect (OAuth) |
-| Jira | `mcp__*[Aa]tlassian*` / `*jira*` | Atlassian MCP; needs site URL + email + API token from id.atlassian.com |
-| Linear | `mcp__*[Ll]inear*` | `claude mcp add --transport sse linear https://mcp.linear.app/sse` |
-| Azure DevOps | Azure DevOps MCP, or `az` CLI | Install the MCP, or `az login && az devops configure` |
-| GitHub Issues | `gh auth status` | `gh auth login` |
+  #  Value                    Where to get it
+  1  Figma token              Figma → avatar → Settings → Security → Personal access
+                              tokens → Generate. Scope "File content". Starts with figd_
+  2  Any ClickUp ticket URL   Open any ticket, copy the address bar. I'll extract the
+                              workspace id and build the link template from it.
+  3  Slack channel id         Slack → channel → View channel details → id at the bottom (C…)
 
-Then collect, proposing the detected value each time:
+Also needs your action (I can't do these for you):
+  •  ClickUp connector    claude.ai → Settings → Connectors → ClickUp → Connect
+  •  Slack connector      claude.ai → Settings → Connectors → Slack → Connect
+     Then run /mcp here to confirm both are listed.
 
-- `idPattern` — from the prefix detected in PHASE 1 (e.g. `TLM-\d+`)
-- `workspaceId` + `urlTemplate` — ask the user to paste any ticket URL and parse both out of it
-- `statuses` — **fetch one real ticket with statuses expanded first**, show the actual status
-  vocabulary, then ask which mean in-progress / in-review / ready-to-ship. Don't guess these.
-- `hasDeploymentTicket`, `planDir` (default `_docs`), `baseBranch`
+Reply when done, or paste the values and I'll write them in.
+```
 
-Verify: fetch one real ticket by id; you must get back a name and a status.
+**Rules for the form:**
 
-### 2d. Slack — only if answer 4 was yes
-
-Detect: `mcp__*Slack*__slack_send_message_draft`.
-If absent: claude.ai → Settings → Connectors → Slack → Connect.
-
-Collect one channel per app (monorepo: match `app` to a `project.apps[].name`). Tell the user where the
-id is: *Slack → channel → View channel details → id at the bottom* (`C…`).
-
-Keep `sendMode: "draft"`. Only set `"send"` if the user explicitly insists — and say plainly that
-release channels are frequently externally shared, where a direct send is blocked anyway and a human
-review is the point.
+- **One form, not a conversation.** Every outstanding value appears here. Don't discover a fifth thing
+  three messages later — that's the failure this phase exists to prevent.
+- **Ask for the source, not the parsed value.** A ticket URL is easier to paste than a workspace id, and
+  you can derive both `workspaceId` and `urlTemplate` from it. Same for anything else you can parse.
+- **Every row carries its instructions.** "Figma token" alone is not actionable; the click path is.
+- **Separate what the user must do themselves** (OAuth connectors, `gh auth login`, `az login`) from
+  values they paste. Tell them to run commands via the `! <command>` prefix or `/mcp`.
+- **Don't ask for what you can fetch.** Ticket statuses come from a real ticket once the tracker is
+  connected — fetch, show the real vocabulary, then ask which mean in-progress / in-review / ready.
+  Never guess these, and never make the user type them blind.
+- **Never echo a secret back**, in the terminal or in your reply. Confirm with "token stored".
 
 ---
 
-## PHASE 3 — WRITE `.claude/settings.local.json`
+## PHASE 3 — VERIFY EACH INTEGRATION
+
+Once values are in, prove each one works with **one real call**. Listed in `/mcp` is not working.
+
+| Integration | Verification |
+|-------------|-------------|
+| context7 | `resolve-library-id` on a known library (e.g. "next.js") returns a hit |
+| Framelink Figma | Fetch metadata for a real Figma file URL |
+| Ticket tracker | Fetch one real ticket by id — must return a name **and** a status |
+| Slack | Create a throwaway draft in the target channel |
+
+Failures come back as **one batch**, not one at a time — same principle as the form. For each: what
+failed, the likely cause, the fix. Common ones: Figma 403 → token lacks *File content* scope or expired;
+ticket "not found" for a valid id → custom ids not enabled, try the numeric id; Slack post rejected →
+externally shared channel, which is exactly why `sendMode` stays `draft`.
+
+Ticket statuses are collected **here**, after the tracker verifies: fetch one ticket with statuses
+expanded, show the real list, ask which map to `inProgress` / `inReview` / `ready[]`.
+
+---
+
+## PHASE 4 — WRITE
 
 Merge into the existing file — **preserve keys you didn't touch** (`permissions`, `hooks`, other
-`mcpServers`). Structure and every key's meaning: `${CLAUDE_PLUGIN_ROOT}/setup/tlm-config.reference.json`.
-Fillable shape: `${CLAUDE_PLUGIN_ROOT}/setup/settings.local.example.json`.
+`mcpServers`). Structure and every key's meaning:
+`${CLAUDE_PLUGIN_ROOT}/setup/tlm-config.reference.json`. Fillable shape:
+`${CLAUDE_PLUGIN_ROOT}/setup/settings.local.example.json`.
 
+- Strip every `<<FILL: …>>` marker and instructional comment — the final file is clean JSON.
 - Set `tlm.version` to the reference's `configVersion`.
-- Omit disabled capabilities rather than writing `"enabled": false` with empty scaffolding — except
-  keep the explicit `enabled: false` so a later run knows it was *answered*, not *unasked*.
-- If a write of the `tlm` key fails or the key vanishes on reload, write the block alone to
-  `.claude/tlm.local.json` and tell the user — skills read that as a fallback.
+- For a capability the user declined, write `"enabled": false` (not an omission) so a later run knows it
+  was **answered**, not **unasked**. Skip its empty scaffolding.
+- Keep `chat.sendMode` at `"draft"` unless the user explicitly insists otherwise.
+- If the `tlm` key fails to write or vanishes on reload, write that block alone to
+  `.claude/tlm.local.json` and say so — skills read it as a fallback.
 
-Then re-read the file and parse it, to prove it's valid JSON.
+Re-read and parse the file afterwards to prove it's valid JSON.
 
 ---
 
-## PHASE 4 — REPORT
+## PHASE 5 — REPORT
 
-One compact status line per integration — configured / skipped by choice / needs the user to act:
+One compact status line per integration:
 
 ```
 context7    ✅ verified
 framelink   ✅ verified (token stored in env)
-clickup     ⚠️  connector not authorized — connect at claude.ai → Settings → Connectors, then /mcp
+clickup     ⚠️  connector not authorized — claude.ai → Settings → Connectors, then /mcp
 slack       — skipped (not used by this project)
 
 ✓ Wrote .claude/settings.local.json (gitignored)
+✓ Ready now:  fe-coding, figma-to-code, rule-capture
+⚠ Blocked:    ticket-workflow, deployment-checklist — connect the ClickUp connector above
 ```
 
-Never print a secret value — say *"token stored"*, not the token. Finish by naming which skills are now
-usable, and list anything still outstanding with the exact next action.
+Never print a secret value. Finish by naming which skills are usable now, and list anything still
+outstanding with its exact next action.
 
 ---
 
 ## HOW OTHER SKILLS USE THIS
 
-Each workflow skill runs a **pre-flight** that reads `tlm` from `.claude/settings.local.json` (falling
-back to `.claude/tlm.local.json`), then follows `skillRequirements` in the reference file.
+Each workflow skill runs a pre-flight that reads `tlm` from `.claude/settings.local.json` (falling back
+to `.claude/tlm.local.json`), then follows `skillRequirements` in the reference file. The SessionStart
+hook (`hooks/setup-check.sh`) surfaces an incomplete config at session start without blocking anything.
 
-**A missing value is never a hard stop.** The rule for every skill:
+**A missing value is normally not a hard stop.** For every skill except one:
 
 1. Do everything that doesn't depend on the missing value first.
-2. Ask for it **inline, during planning** — one focused question, with where to get it.
+2. Ask for it **inline, during planning** — batched, with where to get it.
 3. Offer to persist it so the next run doesn't ask again.
-4. If the user can't supply it now, degrade explicitly and say what's reduced — e.g. `figma-to-code`
-   scaffolds from a description instead of the design; `release-notes` prints the note for manual
-   posting instead of drafting to Slack.
+4. If the user can't supply it now, degrade explicitly and say what's reduced.
 
-Only refuse to continue when proceeding would be *wrong* rather than merely *reduced* — e.g. posting to
-an unverified Slack channel id, or updating a ticket whose status vocabulary is unknown.
+**The one exception: `figma-to-code`.** If the Figma MCP is missing, unauthorized, or the fetch errors,
+it **stops** and writes no UI code. The deliverable is fidelity to a design, so there is no reduced
+version — a screen built from a guess looks finished, so nobody re-checks it, and every wrong value gets
+reviewed as if it were the design.
+
+Otherwise, refuse to continue only when proceeding would be *wrong* rather than merely *reduced* — e.g.
+posting to an unverified channel id, or setting a ticket status whose vocabulary is unknown.

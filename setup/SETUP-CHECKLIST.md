@@ -1,16 +1,20 @@
 # Setup Checklist — Walkthrough
 
 Everything a project must configure before the workflow skills (`figma-to-code`, `ticket-workflow`,
-`release-notes`, `deployment-checklist`) can run.
+`mobile-release-notes`, `deployment-checklist`) can run.
 
 This ships with the plugin, so it applies to **any** project you install it into — not just this repo.
 
-**Don't work through this by hand.** Run `/project-setup` — it asks only the questions your project
-actually needs, verifies each integration with a real call, and writes the config for you. This file is
-the reference it follows, and the thing to read when something breaks.
+**Don't work through this by hand.** Run `/project-setup` — it scans what it can detect, asks the
+gating questions in **one** round, then shows **one** form with every value you still need to supply
+(each with instructions), verifies each integration with a real call, and writes the config for you.
+This file is the reference it follows, and the thing to read when something breaks.
 
-> **Nothing here is a hard gate.** A skill that hits a missing value asks for it *inline, during
+> **Almost nothing here is a hard gate.** A skill that hits a missing value asks for it *inline, during
 > planning*, then offers to persist it. You never get stopped at step one with nothing delivered.
+>
+> **The one exception is Figma** (Step 2). If the design can't be fetched, `figma-to-code` **stops** and
+> writes no UI code rather than approximating the design — see that step for why.
 
 ---
 
@@ -38,7 +42,7 @@ If that prints nothing, add `.claude/settings.local.json` to `.gitignore` **firs
 
 `/project-setup` asks these. They decide which of the steps below apply to you.
 
-1. **Project type?** — Next.js Page Router / App Router / React Native Expo / RN CLI *(auto-detected, you confirm)*
+1. **Project type?** — Next.js Page Router / App Router / React Native Expo / RN CLI / Flutter *(auto-detected, you confirm)*
 2. **Build screens from Figma designs?** → gates Step 2
 3. **Which ticket system?** — ClickUp / Jira / Linear / Azure DevOps / GitHub Issues / none → gates Step 3
 4. **Announce releases in Slack?** → gates Step 4
@@ -70,8 +74,10 @@ claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
 
 ## Step 2 — Framelink Figma MCP  · only if you build from designs
 
-Needed by **`figma-to-code`**. Without it that skill can still scaffold a screen from a description,
-but it cannot read your design.
+Needed by **`figma-to-code`** — and it is a **hard requirement**, not a nice-to-have. Without a working
+design fetch that skill **stops and writes no UI code**. It will not approximate the screen from a frame
+name, a screenshot, or your description: a guessed screen *looks* finished, so nobody re-checks it, and
+every wrong spacing, color and hierarchy then gets reviewed as if it were the design.
 
 - [ ] **Get a Figma token** — Figma → avatar → *Settings* → *Security* → *Personal access tokens* →
       *Generate new token*. Scope: **File content (read)**. Starts with `figd_`.
@@ -98,7 +104,7 @@ but it cannot read your design.
 
 ## Step 3 — Ticket system  · only if the project tracks tickets
 
-Needed by **`ticket-workflow`**, **`release-notes`**, **`deployment-checklist`**.
+Needed by **`ticket-workflow`**, **`mobile-release-notes`**, **`deployment-checklist`**.
 
 ### 3a. Connect the tool
 
@@ -132,7 +138,7 @@ git log --oneline -80 | grep -oiE '[A-Z]{2,}-[0-9]+' \
 
 ## Step 4 — Slack  · only if you announce releases
 
-Needed by **`release-notes`**.
+Needed by **`mobile-release-notes`**.
 
 - [ ] **Connect** — claude.ai → *Settings* → *Connectors* → Slack → **Connect**
 - [ ] **Channel id per app** — Slack → channel → *View channel details* → id at the bottom (`C…`).
@@ -154,7 +160,8 @@ Needed by **`release-notes`**.
 - [ ] `/mcp` lists every server your answers require
 - [ ] Each integration verified with one real call — not just "it's listed"
 
-Then run any workflow skill. If something is still missing it will ask you at planning time.
+Then run any workflow skill. If something is still missing it will ask you at planning time — except a
+failed Figma fetch, which stops rather than guessing.
 
 ---
 
