@@ -70,6 +70,28 @@ than one stack. Detect per **file being edited**, not per repo, whenever the two
 
 Say which stack you detected in one line, then get on with the work. Don't narrate the detection steps.
 
+### Persist the codebase map (write once, read next session)
+
+Detecting the stack is the cheap half. The expensive half — reading `_modules/` to learn where Screens
+live, which `Base*` primitives already exist, and the `apiClient[Domain]` naming in use — should run
+**once**, then be written down so later sessions read it instead of re-scanning the tree every time.
+
+On the **first** substantive task in a repo, after that scan, persist a short map to
+`.claude/codebase-map.md` (committed, not a secret — the whole team benefits):
+
+```md
+<!-- tlm:codebase-map v1 — regenerate if the repo structure drifts -->
+- stack: nextjs-page-router (Mode A)
+- modules root: src/_modules/
+- Base primitives: BaseButton, BaseInput, BaseSelect, BaseTable, BaseEmptyFallBack
+- api clients: apiClientBook, apiClientUser  (pattern: apiClient[Domain].ts)
+- notable: i18n via t(); design tokens in src/styles/theme.ts
+```
+
+On **later** sessions, read `.claude/codebase-map.md` first and skip the directory scan. Re-scan only
+when it looks stale — a `Base*` primitive you expect is absent, the detected stack disagrees with the
+map, or the modules root moved (a router migration). Keep it terse; it's a lookup, not documentation.
+
 ---
 
 ## STEP 2 — Shared base (applies to EVERY stack, always)

@@ -74,6 +74,11 @@ claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
 
 ## Step 2 — Framelink Figma MCP  · only if you build from designs
 
+> **Framelink *is* how this plugin reads Figma** — it's the alternative to Claude's built-in "Figma"
+> connector, and the one `figma-to-code` targets. Use Framelink; you do **not** need to enable the native
+> claude.ai Figma connector (leave it off in claude.ai → *Settings* → *Connectors*). "Figma" words in a
+> prompt still trigger the skill — it just fetches through Framelink.
+
 Needed by **`figma-to-code`** — and it is a **hard requirement**, not a nice-to-have. Without a working
 design fetch that skill **stops and writes no UI code**. It will not approximate the screen from a frame
 name, a screenshot, or your description: a guessed screen *looks* finished, so nobody re-checks it, and

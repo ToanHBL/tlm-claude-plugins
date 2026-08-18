@@ -1,2 +1,4 @@
 tests/react-native-cli/node_modules/*
 .DS_Store
+.claude/settings.json
+.claude/settings.local.json

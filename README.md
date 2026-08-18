@@ -28,7 +28,7 @@ tlm-claude-plugins/
 │   ├── templates/               # requirement-intake templates
 │   ├── nextjs/{app,page}-router/# + 06-hard-rules.md each
 │   └── reactnative/             # + 06-hard-rules.md
-├── hooks/                   # SessionStart: core-reference refresh + config completeness check
+├── hooks/                   # SessionStart: config completeness check · PostToolUse: fe-coding hard-rule lint
 └── tests/                   # one generated project per stack, from one shared spec
 ```
 

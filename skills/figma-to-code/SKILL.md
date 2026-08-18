@@ -21,7 +21,9 @@ Next.js page or a React Native screen.
 below adapts to it: Next.js gets Tailwind + `Col`/`Row`/`TextPrimary`; React Native gets
 `StyleSheet.create` + theme constants + `scale()`.
 
-**2. Framelink Figma MCP — HARD GATE.** Check with **ToolSearch** for tools matching
+**2. Framelink Figma MCP — HARD GATE.** Framelink **is** how this plugin reads Figma — the alternative to
+Claude's native/claude.ai "Figma" connector, which we do not use. Any "figma" wording in the request wakes
+this skill, and it fetches through Framelink. Check with **ToolSearch** for tools matching
 `mcp__*[Ff]ramelink*` or `mcp__*[Ff]igma*`, then **actually fetch the linked file**. Being listed in
 `/mcp` is not proof it works — an expired token fails only at fetch time.
 

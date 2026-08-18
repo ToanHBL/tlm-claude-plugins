@@ -55,6 +55,7 @@
     "framelink-figma": {
       "required": "when tlm.design.enabled === true",
       "purpose": "Read Figma files/frames so a design can be turned into code.",
+      "aka": "This is THE way this plugin accesses Figma — the alternative to Claude's native/claude.ai 'Figma' connector. Use Framelink; do NOT enable the native Figma connector. 'Figma' words in a prompt trigger figma-to-code, which fetches through Framelink.",
       "usedBy": ["figma-to-code"],
       "secret": true,
       "secretKey": "FIGMA_ACCESS_TOKEN",
