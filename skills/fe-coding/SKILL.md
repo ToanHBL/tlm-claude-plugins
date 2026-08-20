@@ -211,10 +211,38 @@ inside (transparent background when inactive). A block at the **end** of a layou
 - Web: layout via `Col` / `Row` + Tailwind utility classes; text via `TextPrimary`. RN: `StyleSheet.create`
   + theme constants (no NativeWind).
 - Build in-house `Base*` primitives; screens use those, never raw framework UI kits.
+- **Web: every pressable element gets `cursor-pointer` explicitly (MUST).** Tailwind's Preflight
+  resets `<button>` to `cursor: default` — a native browser affordance web users rely on to tell
+  "clickable" from "static text" is silently gone unless restored. Add `cursor-pointer` (and
+  `disabled:cursor-not-allowed` where the element supports a disabled state) directly in the shared
+  `BaseButton` primitive so every screen inherits it — don't rely on `<a>`'s native pointer cursor
+  either, state it explicitly on any custom pressable `Base*` (a styled `<div>`/`<a>` acting as a
+  button) so the rule holds regardless of element type or future Preflight changes.
 - Design tokens live in ONE place — Tailwind v4 `@theme` in global CSS, v3 `theme.extend` in the config,
   RN a theme constants module. **Never hardcode hex in components** (`bg-[#0075ff]`, inline styles).
   A new color is a token change, not a per-component decision.
 - Mobile-first, responsive. Wrap all display strings in `t()` (i18next) — never hardcode.
+
+**Mobile-first means the unprefixed rule IS the mobile design, not a shrunk desktop one (MUST).**
+Write the base (no breakpoint prefix) classes for the phone layout — full-width content with padding,
+natural single-column reading order, base font/spacing sized for a small screen. Breakpoint prefixes
+(`sm:`/`md:`/`lg:`) are strictly *additive* enhancements layered on top for more space, never the
+starting point.
+
+- **Don't reach for `grid`/multi-column as the base display mode "because it collapses fine at 1
+  column anyway."** `<Col className="grid grid-cols-1 lg:grid-cols-[...]">` technically renders
+  correctly on mobile, but it's still a grid-first container wearing a mobile fallback — the tell is
+  writing `grid-cols-1` at all as a base rule. Prefer `<Col className="flex flex-col lg:grid lg:grid-cols-[...]">`
+  (or just `Col`'s default `flex flex-col` with no override below the breakpoint that needs the grid) —
+  the base case shouldn't need to state "1 column" because flex stacking already means that.
+- A width/size constraint requested "for the content" (a max-width cap, a sidebar rail, a fixed
+  aspect box) is usually a **wide-screen** concern — gate it behind `md:`/`lg:`, don't apply it
+  unprefixed and then loosen it for mobile. On a narrow phone, padding alone is normally enough;
+  a percentage or rem cap sized for desktop reading comfort applied at the base breakpoint tends to
+  feel cramped once real device padding/safe-areas are added on top of it.
+- When in doubt which value is "mobile" and which is "desktop enhancement": open the component
+  mentally at 375px width first, style that completely, and only then add breakpoint prefixes for
+  what changes at more space — never design at a wide viewport and add narrow-screen classes after.
 
 **Display strings are null-safe.** API values can be `null`, `undefined`, or the string `"null"`; raw
 template literals leak those to the user. Wrap single values in `safeString(v)`; compose multi-part
