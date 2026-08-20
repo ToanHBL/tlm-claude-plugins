@@ -164,6 +164,13 @@ Each `tests/*` folder is a real project generated from one shared User-CRUD spec
 
 When you correct Claude's output with a reason — *"use `navigate`, `push` duplicates the screen on a
 spam tap"* — **`rule-capture`** classifies it (new rule / gap / contradicts an existing rule / one-off),
-checks what's already written down, and asks whether to persist it to `ai/` (all projects), this repo's
-`CLAUDE.md` (this project), or memory (how you want to be worked with). The correction and the rule land
-together, so the same fix isn't needed again next week.
+checks what's already written down, and asks whether to persist it as a **plugin rule** (all projects),
+this repo's `CLAUDE.md` (this project), or memory (how you want to be worked with). The correction and
+the rule land together, so the same fix isn't needed again next week.
+
+Because the plugin installs read-only (a managed clone `/plugin marketplace update` overwrites), a
+**plugin rule is contributed back via a PR, not an in-place edit**. Opt in during `/project-setup` and it
+**vendors** an editable copy of the rules into `.claude/tlm-plugin/`; `rule-capture` then edits that copy
+and `skills/rule-capture/plugin-pr.sh` opens a PR to the upstream (bumping the version in lockstep and
+printing a GitHub compare URL). The rule reaches the whole team on the next `/plugin marketplace update`.
+See [`CLAUDE.md`](CLAUDE.md) → *Contributing rules back*.

@@ -43,7 +43,7 @@ Search before classifying. Never claim something is new without looking.
 
 ```bash
 grep -rn --include="*.md" -i "<the concept>" "${CLAUDE_PLUGIN_ROOT}/ai" "${CLAUDE_PLUGIN_ROOT}/skills"
-grep -rn -i "<the concept>" CLAUDE.md .claude/ 2>/dev/null
+grep -rn -i "<the concept>" CLAUDE.md .claude/ 2>/dev/null   # includes the vendored copy at .claude/tlm-plugin/
 ```
 
 Also check this project's memory directory and any `CLAUDE.md` up the tree — a rule may already exist at
@@ -77,10 +77,20 @@ State the classification and what you found, then ask. One question, concrete op
 
 Options to offer:
 
-1. **Yes — plugin rule** (applies to every project): write it into `ai/` + the relevant skill
+1. **Yes — plugin rule** (applies to every project, ships to the team): edit the **vendored copy**
+   (`tlm.pluginRepo.vendorDir`, default `.claude/tlm-plugin/`) and open a **PR** to the plugin upstream.
+   *Only offer this when `tlm.pluginRepo.enabled === true`* — otherwise the plugin can't be contributed to
+   from this project (say so, and suggest `/project-setup` if they want to enable it).
 2. **Yes — project rule** (this repo only): write it into this project's `CLAUDE.md`
 3. **Yes — my preference** (how I should work, not what the code should be): write it to memory
 4. **No — just this change**
+
+> **Why plugin scope is a PR, not an edit.** The installed plugin lives under `${CLAUDE_PLUGIN_ROOT}`, a
+> Claude Code **managed clone that `/plugin marketplace update` overwrites** — editing it there loses the
+> change and never reaches the team. So plugin-scope rules are staged in the committed vendored copy and
+> shipped via a PR. **Consequence the user must know:** a plugin rule does **not** take effect locally
+> until the PR merges and they run `/plugin marketplace update`. If they need it enforced *now* in this
+> repo too, also take option 2 (project rule) — the two aren't exclusive.
 
 For a **CORRECTION**, also say which existing rule contradicts the feedback and where, so the user is
 choosing knowingly. For **ONE-OFF**, don't ask at all — just make the change.
@@ -100,20 +110,51 @@ quietly misfires in every other repo.
 
 ## STEP 4 — Write it
 
-### Plugin scope
+### Plugin scope — edit the vendored copy, then open a PR
 
-1. **Deep rule** → the right `ai/` file, with the same structure as its neighbours: the rule, **why**
-   (the failure it prevents), ❌ wrong / ✅ correct examples, and any explicit exception.
-   - Shared across stacks → `ai/shared-fe/`
-   - Stack-specific → `ai/<stack>/06-hard-rules.md`
-2. **If it's CRITICAL enough to hold without a second file read** → also add a short form to
-   `skills/fe-coding/SKILL.md` in the matching section. Be strict here; that file only stays useful
-   while it's short.
-3. **Add a line to the checklist** in `ai/shared-fe/07-ai-workflow-integration.md` §9 if it's checkable.
+**Never edit `${CLAUDE_PLUGIN_ROOT}` directly** (a managed clone; `/plugin marketplace update` overwrites
+it). All edits go into the **vendored copy** at `tlm.pluginRepo.vendorDir` (default `.claude/tlm-plugin/`),
+which is committed in this repo and mirrored upstream by the PR script. If the vendored copy is missing,
+stop and tell the user to run `/project-setup` to vendor the plugin first.
+
+Make the same layered edits you always would — **inside the vendored copy**:
+
+1. **Deep rule** → `<vendorDir>/ai/…`, same structure as its neighbours: the rule, **why** (the failure
+   it prevents), ❌ wrong / ✅ correct examples, any explicit exception.
+   - Shared across stacks → `<vendorDir>/ai/shared-fe/`
+   - Stack-specific → `<vendorDir>/ai/<stack>/06-hard-rules.md`
+2. **If CRITICAL enough to hold without a second file read** → also add a short form to
+   `<vendorDir>/skills/fe-coding/SKILL.md` in the matching section. Be strict; it stays useful only while short.
+3. **Checklist line** → `<vendorDir>/ai/shared-fe/07-ai-workflow-integration.md` §9 if it's checkable.
 
 **Include the reason the user gave.** *"Use `navigate` not `push`"* gets ignored; *"because `push`
-always pushes, so a spam tap duplicates the screen and the user has to press back twice"* gets
-followed. The failure story is what makes a rule stick.
+always pushes, so a spam tap duplicates the screen and the user has to press back twice"* gets followed.
+The failure story is what makes a rule stick.
+
+Then **open the PR** with the helper — it clones the upstream, mirrors the vendored copy onto a branch,
+bumps the version in lockstep across the three manifest fields, pushes, and prints the PR/compare URL.
+Announce the command before running it:
+
+```bash
+# Export config from tlm.pluginRepo (each has a default; read the block from
+# .claude/settings.local.json). Then:
+export TLM_VENDOR_DIR="$(pwd)/.claude/tlm-plugin"     # tlm.pluginRepo.vendorDir
+export TLM_UPSTREAM_REMOTE="git@github.com-hbl:ToanHBL/tlm-claude-plugins.git"  # .upstreamRemote
+export TLM_OWNER_REPO="ToanHBL/tlm-claude-plugins"    # .ownerRepo
+export TLM_BASE="develop"                             # .baseBranch
+export TLM_BUMP="patch"                               # .bump
+export TLM_PR_MODE="compare-url"                      # .prMode
+export TLM_TITLE="rule(<slug>): <one-line summary>"
+export TLM_BODY="Classification + the rule + the WHY the user gave."
+
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rule-capture/plugin-pr.sh" preflight   # sanity check first
+bash "${CLAUDE_PLUGIN_ROOT}/skills/rule-capture/plugin-pr.sh" open "<slug>"
+```
+
+Report the printed `PR_URL` (or the branch name if push failed — then tell the user to push it and open
+the PR by hand). Remind them the rule reaches every project only after the PR merges and they run
+`/plugin marketplace update`. If they need it live in *this* repo immediately, also apply it as a project
+rule (append to `CLAUDE.md`).
 
 ### Project scope
 

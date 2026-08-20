@@ -74,6 +74,22 @@
       ]
     },
 
-    "docs": { "mcp": "context7" }
+    "docs": { "mcp": "context7" },
+
+    "//pluginRepo": [
+      "OPTIONAL. Enable only for a team member who maintains the house rules and wants to change them",
+      "from this project and open PRs back to the plugin. /project-setup vendors the plugin into",
+      ".claude/tlm-plugin/ and rule-capture opens PRs via skills/rule-capture/plugin-pr.sh. Leave",
+      "enabled:false (or omit) in a plain consuming project. See tlm-config.reference.json → tlm.pluginRepo."
+    ],
+    "pluginRepo": {
+      "enabled": false,
+      "upstreamRemote": "git@github.com-hbl:ToanHBL/tlm-claude-plugins.git",
+      "ownerRepo": "ToanHBL/tlm-claude-plugins",
+      "baseBranch": "develop",
+      "vendorDir": ".claude/tlm-plugin",
+      "prMode": "compare-url",
+      "bump": "patch"
+    }
   }
 }

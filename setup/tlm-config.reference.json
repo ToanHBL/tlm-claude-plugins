@@ -391,6 +391,67 @@
       "detect": { "openspecDir": "an openspec/ directory at the repo root (created by `openspec init`)" },
       "requires": "Node >= 20.19.0 for the OpenSpec CLI. Below that, or offline, the skill falls back to ordinary fe-coding.",
       "unifiesWith": "tlm.tickets.planDir — when spec-driven is on, a ticket's OpenSpec change (openspec/changes/<ticket-id>-<slug>/) IS the plan; the ad-hoc plan file is not written."
+    },
+
+    "pluginRepo": {
+      "$comment": [
+        "CONTRIBUTE-BACK contract. The plugin installs read-only under ${CLAUDE_PLUGIN_ROOT} (a Claude Code",
+        "managed clone that /plugin marketplace update overwrites), so edits made there are lost and never",
+        "reach the team. This block lets a consuming project VENDOR the plugin's editable source into the",
+        "repo, edit it there, and open a PR upstream. rule-capture (plugin scope) and the vendor-watch hook",
+        "read this. Absent/enabled:false → the contribute-back flow is off and rule-capture only offers",
+        "project (CLAUDE.md) and memory scopes."
+      ],
+      "enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": false,
+        "description": "Does this project vendor the plugin source and allow opening PRs back to it? Set true by /project-setup when the user opts in.",
+        "source": "ask the user during /project-setup"
+      },
+      "upstreamRemote": {
+        "type": "string",
+        "required": "when enabled",
+        "description": "Git push URL of the plugin's canonical upstream. A fresh checkout is cloned from here to build the PR branch — NEVER ${CLAUDE_PLUGIN_ROOT}.",
+        "default": "git@github.com-hbl:ToanHBL/tlm-claude-plugins.git",
+        "example": "git@github.com-hbl:ToanHBL/tlm-claude-plugins.git"
+      },
+      "ownerRepo": {
+        "type": "string",
+        "required": "when enabled",
+        "description": "<owner>/<repo> on GitHub, used only to build the browser compare URL (https://github.com/<ownerRepo>/compare/...). Derived from upstreamRemote when omitted.",
+        "default": "ToanHBL/tlm-claude-plugins",
+        "example": "ToanHBL/tlm-claude-plugins"
+      },
+      "baseBranch": {
+        "type": "string",
+        "required": false,
+        "default": "develop",
+        "description": "Branch on the upstream that rule PRs target and are cut from."
+      },
+      "vendorDir": {
+        "type": "string",
+        "required": false,
+        "default": ".claude/tlm-plugin",
+        "description": "Path (repo-relative) of the committed, editable copy of the plugin's skills/ ai/ hooks/ setup/. NOT .claude/skills/ — that would double-register skill names against the installed plugin. The vendored copy is an EDIT + PR-STAGING surface only; edits do NOT take effect locally until merged upstream and pulled via /plugin marketplace update."
+      },
+      "prMode": {
+        "type": "enum",
+        "values": ["compare-url", "gh"],
+        "default": "compare-url",
+        "description": "'compare-url' — push the branch and print a GitHub compare link the user clicks to open the PR (no extra tooling). 'gh' — use the gh CLI to open the PR automatically (only if gh is installed and authed)."
+      },
+      "bump": {
+        "type": "enum",
+        "values": ["patch", "minor", "major"],
+        "default": "patch",
+        "description": "Semver field the PR bumps in lockstep across plugin.json.version + marketplace.json metadata.version + plugins[0].version. A rule addition is a patch by default."
+      },
+      "helperScript": {
+        "type": "string",
+        "value": "${CLAUDE_PLUGIN_ROOT}/skills/rule-capture/plugin-pr.sh",
+        "description": "The script rule-capture invokes to clone upstream, sync the vendored edits onto a branch, bump versions in lockstep, commit, push, and print the PR/compare URL. Read its header for the env vars it takes."
+      }
     }
   },
 
@@ -423,9 +484,10 @@
     },
     "rule-capture": {
       "mcp": [],
-      "config": [],
+      "config": ["tlm.pluginRepo (only for the PLUGIN scope / contribute-back path)"],
+      "cli": ["git (always present); gh only if tlm.pluginRepo.prMode === 'gh'"],
       "secrets": [],
-      "ifMissing": "No config needed. Reads ai/ and skills/ from the plugin, plus the project's CLAUDE.md and memory."
+      "ifMissing": "Always runs — it has no capability companion. Reads ai/ and skills/ from the plugin, plus the project's CLAUDE.md and memory. The PLUGIN scope is the only part that needs setup: it edits the vendored copy (tlm.pluginRepo.vendorDir) and opens a PR upstream via plugin-pr.sh. If tlm.pluginRepo is absent or enabled:false, do NOT offer plugin scope — offer only project (CLAUDE.md) and memory scopes, and tell the user to run /project-setup if they want contribute-back. If git push fails (no upstream access), degrade: leave the branch/commit and tell the user how to push + open the PR by hand. Never edit ${CLAUDE_PLUGIN_ROOT} in place — a marketplace update wipes it."
     },
     "deployment-checklist": {
       "mcp": ["<the MCP for tlm.tickets.system>"],
@@ -451,6 +513,7 @@
     "Coding skills (fe-coding, rule-capture) have no capability companions and always run, even with zero config.",
     "At setup, DETECT the project's own rules/specs (CLAUDE.md, AGENTS.md, .cursorrules, .claude/rules, openspec/, docs/specs, eslint/prettier/biome/tsconfig) and HONOR them. The plugin's house rules layer on top and DEFER to an explicit project rule where they conflict — never silently override a documented project convention; surface the conflict and route a persistent override through rule-capture. Record the catalog in .claude/codebase-map.md.",
     "After collecting a value at runtime, offer to persist it so the next run does not ask again.",
-    "Verify a newly configured integration with one real read (fetch a ticket, resolve a Figma file) before relying on it."
+    "Verify a newly configured integration with one real read (fetch a ticket, resolve a Figma file) before relying on it.",
+    "CONTRIBUTE-BACK: the plugin under ${CLAUDE_PLUGIN_ROOT} is a read-only managed clone — NEVER edit it in place to change a rule (a marketplace update overwrites it and the team never sees it). Persistent PLUGIN-scope rule changes go through the vendored copy (tlm.pluginRepo.vendorDir) + a PR to the upstream (plugin-pr.sh). The vendored copy is an EDIT/PR-STAGING surface, not a live override: a change takes effect only after the PR merges and the user runs /plugin marketplace update. It lives at .claude/tlm-plugin/, NOT .claude/skills/, so it does not double-register skills against the installed plugin."
   ]
 }

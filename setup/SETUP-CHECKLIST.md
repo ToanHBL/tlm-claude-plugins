@@ -163,6 +163,28 @@ Needed by **`mobile-release-notes`**.
 
 ---
 
+## Step 4.5 — Contribute rules back  · optional, for rule maintainers
+
+By default the plugin is read-only: it installs under `${CLAUDE_PLUGIN_ROOT}`, a managed clone that
+`/plugin marketplace update` overwrites, so a rule you change there is lost and never reaches the team.
+Turn on contribute-back to edit the house rules **from this project** and ship them via a PR.
+
+- [ ] **Vendor the plugin** — `/project-setup` (PHASE 1.5) copies `skills/ ai/ hooks/ setup/` into
+      `.claude/tlm-plugin/` (committed) and sets `tlm.pluginRepo.enabled=true`. This is an
+      **edit/PR-staging surface, not a live override** — a change takes effect only after its PR merges
+      and you run `/plugin marketplace update`.
+- [ ] **Edit a rule** — correct Claude as usual; `rule-capture` writes the plugin-scope rule into the
+      vendored copy. The `vendor-watch` hook then reminds it to offer a PR.
+- [ ] **Open the PR** — `rule-capture` runs `skills/rule-capture/plugin-pr.sh open <slug>`: it clones the
+      upstream (`ToanHBL/tlm-claude-plugins`, base `develop`), mirrors the vendored copy onto a branch,
+      bumps the version in lockstep, pushes, and prints a GitHub compare URL you click to open the PR.
+      Only `git` is required (`gh` optional — set `prMode:"gh"` to auto-open).
+
+Leave it off in a plain consuming project — `rule-capture` still offers project (`CLAUDE.md`) and memory
+scope. Full schema: `tlm-config.reference.json` → `tlm.pluginRepo`.
+
+---
+
 ## Step 5 — Confirm and finish
 
 - [ ] `.claude/settings.local.json` exists and is gitignored

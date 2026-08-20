@@ -58,6 +58,8 @@ config):
   and catalogs them into `.claude/codebase-map.md` — the house rules **defer to an explicit project rule
   where they conflict**, never silently override it (persistent overrides go through `rule-capture`).
 - `rule-capture` — corrective feedback → classify (NEW / GAP / CORRECTION / ONE-OFF) → ask → persist.
+  **Plugin-scope rules are contributed back via a PR, not an in-place edit** (see "Contributing rules
+  back" below): the edit lands in the project's *vendored copy* and `plugin-pr.sh` opens the PR upstream.
 - `figma-to-code` — Figma link → screen; **hard-stops** if the Framelink MCP is missing/unauthorized
   (never approximates a design from a frame name or screenshot).
 - `ticket-workflow` — ticket → branch → plan → implement → sync.
@@ -87,9 +89,32 @@ Coding skills (`fe-coding`, `rule-capture`) have no capability companions and al
 config. `figma-to-code` is the hardest stop (no deliverable without the design); `spec-driven` is the
 one that still degrades (opt-in per ticket, falls back to `fe-coding`).
 
+## Contributing rules back (vendor + PR)
+
+The plugin installs read-only under `${CLAUDE_PLUGIN_ROOT}` — a Claude Code **managed clone that
+`/plugin marketplace update` overwrites**. Editing a rule there is a dead end: the change is lost on the
+next update and never reaches the team. The contribute-back flow solves this:
+
+1. **Vendor** — `project-setup` (PHASE 1.5) copies the plugin's editable subtrees (`skills/ ai/ hooks/
+   setup/`) into the consuming repo at `.claude/tlm-plugin/` (committed), and records
+   `tlm.pluginRepo` in config. It is deliberately **not** `.claude/skills/` — that path would
+   double-register skill names against the installed plugin. The vendored copy is an **edit/PR-staging
+   surface, not a live override**: a change there takes effect only after its PR merges upstream and the
+   user runs `/plugin marketplace update`.
+2. **Edit** — `rule-capture` (plugin scope) writes the rule into the vendored copy, same layering as
+   before (`ai/` deep rule + optional `fe-coding/SKILL.md` short form + checklist line).
+3. **Detect** — the `vendor-watch.sh` PostToolUse hook notices any edit under `.claude/tlm-plugin/` and
+   reminds Claude to offer the PR.
+4. **PR** — `skills/rule-capture/plugin-pr.sh open <slug>` clones the upstream (`tlm.pluginRepo`), mirrors
+   the vendored subtrees onto a `rule/<slug>` branch, **bumps the version in lockstep** across the three
+   manifest fields, pushes, and prints a GitHub compare URL (or uses `gh` if `prMode:"gh"`). Upstream and
+   base default to `ToanHBL/tlm-claude-plugins` / `develop`. It never touches `${CLAUDE_PLUGIN_ROOT}`.
+
+The config contract for all of this is `tlm.pluginRepo` in `setup/tlm-config.reference.json`.
+
 ## Hooks
 
-Declared in `hooks/hooks.json`, both invoked via `${CLAUDE_PLUGIN_ROOT}`:
+Declared in `hooks/hooks.json`, invoked via `${CLAUDE_PLUGIN_ROOT}`:
 
 - **SessionStart → `setup-check.sh`** — reports incomplete `tlm` config so a workflow skill doesn't fail
   mid-task. **Silent** when there's no config at all (a plain coding repo) or when it's complete; only
@@ -97,7 +122,12 @@ Declared in `hooks/hooks.json`, both invoked via `${CLAUDE_PLUGIN_ROOT}`:
   `settings.local.json` is not gitignored.
 - **PostToolUse (Edit|Write|MultiEdit) → `lint-fe.sh`** — advisory (runs *after* the write, cannot undo
   it). Emits `hookSpecificOutput.additionalContext` so Claude self-corrects the same turn. Silent unless
-  it finds a violation. Both scripts require `jq` and exit silently without it.
+  it finds a violation.
+- **PostToolUse (Edit|Write|MultiEdit) → `vendor-watch.sh`** — fires only when the edited path is under a
+  `.claude/tlm-plugin/` (the vendored plugin copy) and reminds Claude to offer a contribute-back PR.
+  Silent everywhere else.
+
+All hook scripts require `jq` and exit silently without it.
 
 ## tests/ — fixtures, not runnable apps
 

@@ -127,6 +127,40 @@ repair run. If all four are already answered, go straight to PHASE 2.
 
 ---
 
+## PHASE 1.5 — CONTRIBUTE-BACK (optional, ask once)
+
+The plugin installs read-only under `${CLAUDE_PLUGIN_ROOT}` — a managed clone `/plugin marketplace update`
+overwrites — so a rule change made there is lost and never reaches the team. To make the house rules
+**editable from this project and shippable back**, offer to **vendor** the plugin into the repo:
+
+> Vendor an editable copy of the plugin here so you can change rules and open PRs back to it? (adds
+> `.claude/tlm-plugin/`, committed)
+
+Default **off** for a plain consuming project; lean **on** for a team member who maintains the rules. On
+**yes**:
+
+1. **Copy** the plugin's editable subtrees into the vendor dir (NOT `.claude/skills/` — that would
+   double-register skill names against the installed plugin):
+   ```bash
+   VENDOR=".claude/tlm-plugin"
+   mkdir -p "$VENDOR"
+   for d in skills ai hooks setup; do
+     rsync -a --delete --exclude node_modules --exclude .next --exclude .DS_Store \
+       "${CLAUDE_PLUGIN_ROOT}/$d/" "$VENDOR/$d/"
+   done
+   ```
+2. **Write a `VENDORED.md`** at the vendor root recording: the source plugin + version (read from
+   `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`), that this copy is an **edit/PR-staging surface**
+   (edits take effect only after the PR merges + `/plugin marketplace update`), and that PRs are opened
+   with `skills/rule-capture/plugin-pr.sh`.
+3. **Set `tlm.pluginRepo`** in PHASE 4 (see below).
+4. **Record** the vendored copy + version in `.claude/codebase-map.md` so a version drift versus the
+   installed plugin is visible later.
+
+If declined, leave `tlm.pluginRepo.enabled=false` — `rule-capture` then offers only project/memory scope.
+
+---
+
 ## PHASE 2 — SHOW ONE FILL-IN FORM
 
 Now you know exactly which values are needed and which you already have. Present **everything
@@ -240,6 +274,10 @@ Merge into the existing file — **preserve keys you didn't touch** (`permission
 - Keep `chat.sendMode` at `"draft"` unless the user explicitly insists otherwise.
 - If PHASE 0.4 found an `openspec/` directory, set
   `tlm.specDriven = { "engine": "openspec", "mode": "ask-per-ticket", "announceCommands": true }`.
+- If PHASE 1.5 vendored the plugin, set `tlm.pluginRepo = { "enabled": true, "upstreamRemote":
+  "git@github.com-hbl:ToanHBL/tlm-claude-plugins.git", "ownerRepo": "ToanHBL/tlm-claude-plugins",
+  "baseBranch": "develop", "vendorDir": ".claude/tlm-plugin", "prMode": "compare-url", "bump": "patch" }`
+  (see `tlm-config.reference.json` → `tlm.pluginRepo`). If declined, set `{ "enabled": false }`.
 - Do **not** write a `mcpServers` block for `context7` or `framelink-figma` — they are bundled by the
   plugin. Only the Figma **token** goes in `env`. Add `mcpServers` only for a server the plugin doesn't
   bundle.
