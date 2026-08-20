@@ -125,6 +125,11 @@ server-driven feed that's unbounded memory and a slow first render. `FlatList` v
 
 - **`ScrollView` is for bounded, hand-authored layouts** — detail screens, forms, dashboards of a fixed
   set of sections. A `.slice(0, N)`-capped preview also counts as bounded.
+- **Horizontal lists use `FlatList horizontal`, never a horizontal `ScrollView` + `.map()`.** The rule is
+  orientation-agnostic: a row of data-driven items (status-filter chips with counts, a card carousel, a
+  chip rail) is still a list — give it `horizontal`, `showsHorizontalScrollIndicator={false}`, a stable
+  `keyExtractor`, and `contentContainerStyle` for gap/padding. A horizontal `ScrollView` is only for a
+  truly fixed, hand-authored set that never grows.
 - **Everything above the list scrolls with it** via `ListHeaderComponent` (title, filter chips, hero
   cards). Never stack a `ScrollView` and a `FlatList`, and never nest a `FlatList` inside a `ScrollView`.
 - **`keyExtractor`** returns a stable id from the data — never the array index.
@@ -149,6 +154,21 @@ server-driven feed that's unbounded memory and a slow first render. `FlatList` v
   ListHeaderComponent={listHeader}
   ListEmptyComponent={<BaseEmptyState title={t('noAlerts')} />}
   contentContainerStyle={styles.content}
+/>
+
+// ❌ Horizontal row of data-driven items mounted eagerly
+<ScrollView horizontal contentContainerStyle={styles.row}>
+  {chips.map((ch) => <Chip key={ch.key} {...ch} />)}
+</ScrollView>
+
+// ✅ Horizontal list — same rule, with `horizontal`
+<FlatList
+  data={chips}
+  horizontal
+  showsHorizontalScrollIndicator={false}
+  keyExtractor={(ch) => ch.key}
+  renderItem={({ item }) => <Chip {...item} />}
+  contentContainerStyle={styles.row}
 />
 ```
 
@@ -193,7 +213,7 @@ needed, prefer these over alternatives:
 - [ ] User-tap navigation uses `router.navigate` / default `<Link>`, never `push` (unless intentional dupes)
 - [ ] Params via `useLocalSearchParams()` (Expo) / `useRoute().params` (CLI)
 - [ ] `app/` files thin; logic in `_modules/pages/…Screen`
-- [ ] Data-driven lists use `FlatList` with a stable `keyExtractor` and a `ListEmptyComponent`
+- [ ] Data-driven lists use `FlatList` with a stable `keyExtractor` and a `ListEmptyComponent` — including horizontal rows (`FlatList horizontal`, not a horizontal `ScrollView` + `.map()`)
 - [ ] RN primitives via `Col` / `Row` / `TextPrimary` / `Base*` wrappers; no scattered raw styles
 - [ ] Icon sizes and fixed dimensions wrapped in `scale()` (fonts `scaleFont()`); theme tokens not re-scaled
 - [ ] Shared rules from `ai/shared-fe/` applied
