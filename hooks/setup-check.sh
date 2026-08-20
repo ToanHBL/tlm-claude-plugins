@@ -2,11 +2,17 @@
 # SessionStart hook for the project-setup skill.
 #
 # Reports the state of this project's workflow-skill config so Claude can tell the
-# user what's missing BEFORE a skill fails mid-task. Three outcomes:
+# user what's missing BEFORE a skill fails mid-task. Outcomes:
 #   1. No .claude/settings.local.json at all -> stay SILENT (not every project uses
 #      the workflow skills; nagging a plain coding repo is noise).
 #   2. Config exists and looks complete    -> stay silent.
 #   3. Config exists but is INCOMPLETE     -> print what's missing + how to fix.
+# Independently:
+#   - BASELINE companions (node, jq) missing -> always surface (jq absent = both
+#     hooks silently no-op; node absent = npx servers + OpenSpec CLI cannot run).
+#   - an openspec/ directory present -> emit the spec-driven reminder.
+# These fire regardless of the tlm-config outcome. With node+jq present and no
+# config/openspec, the hook stays silent as before.
 #
 # stdout on exit 0 is auto-injected into Claude's context.
 
@@ -21,15 +27,50 @@ fi
 CFG="$PROJ/.claude/settings.local.json"
 ALT="$PROJ/.claude/tlm.local.json"
 
-# Nothing configured at all -> silent. /project-setup is opt-in.
-[ -f "$CFG" ] || [ -f "$ALT" ] || exit 0
-
-# jq is required to inspect the config; without it, say so once rather than guessing.
-if ! command -v jq >/dev/null 2>&1; then
-  echo "[project-setup] A tlm config exists at $CFG but jq is not installed, so it could not be"
-  echo "checked. Install jq, or read the file directly if a workflow skill reports a problem."
-  exit 0
+# --- spec-driven (OpenSpec) detection --------------------------------------
+# Independent of the tlm config: a repo can be spec-driven without using the
+# other workflow skills. If an openspec/ directory exists, this repo is on
+# OpenSpec -> remind Claude to drive it by default and announce each CLI call.
+# Built with only [ -d ], so it works even when jq is absent.
+OPENSPEC_MSG=""
+if [ -d "$PROJ/openspec" ]; then
+  OPENSPEC_MSG="[spec-driven] This repo is on OpenSpec (openspec/ present).
+  - PER-TICKET GATE: when a ticket or a substantial feature starts (new domain/screen, new endpoint,
+    altered flow), ASK the user once: apply OpenSpec for this one? Only if they say yes, run the
+    spec-driven skill (/opsx:propose <id> -> present proposal -> /opsx:apply via fe-coding -> /opsx:sync
+    -> /opsx:archive). If they decline, or it's a trivial fix/copy/rename, run the normal rules skills
+    (fe-coding / ticket-workflow) and do NOT touch OpenSpec.
+  - TRANSPARENCY (required): whenever you do run an openspec / npx openspec / /opsx:* command, print a
+    one-line notice first so the user is aware, e.g.  \"▶ OpenSpec: npx openspec@latest init --tools claude\".
+  - If Node < 20.19 or npm is unreachable, say so once and fall back to ordinary fe-coding."
 fi
+
+# --- baseline companion tools ----------------------------------------------
+# Required-by-capability enforcement starts with the BASELINE: node runs the
+# npx-based MCP servers (context7, Framelink) + the OpenSpec CLI; jq powers BOTH
+# hooks (without it this hook AND the lint hook silently no-op). Surface either
+# when missing — a silent no-op is worse than one line. With both present this
+# stays empty, so plain coding repos remain silent.
+BASELINE_MSG=""
+command -v node >/dev/null 2>&1 || BASELINE_MSG="${BASELINE_MSG}  - node not found — the npx-based MCP servers (context7, Framelink) and the OpenSpec CLI cannot run. Install Node (>=20.19 if you use spec-driven)."$'\n'
+command -v jq   >/dev/null 2>&1 || BASELINE_MSG="${BASELINE_MSG}  - jq not found — BOTH plugin hooks (this config check + the fe-coding lint) are DISABLED until it is installed: brew install jq / apt install jq."$'\n'
+[ -n "$BASELINE_MSG" ] && BASELINE_MSG="[baseline] Required companion tools are missing (install these first):"$'\n'"${BASELINE_MSG}"
+
+# Emit any accumulated reminders and exit. Used at every point where the
+# tlm-config check would otherwise stay silent, so spec-driven repos and repos
+# with a broken baseline still get the reminder even without a tlm block.
+finish() {
+  [ -n "$BASELINE_MSG" ] && printf '%s\n' "$BASELINE_MSG"
+  [ -n "$OPENSPEC_MSG" ] && printf '%s\n' "$OPENSPEC_MSG"
+  exit 0
+}
+
+# Nothing configured at all -> only the baseline / OpenSpec reminders (if any).
+[ -f "$CFG" ] || [ -f "$ALT" ] || finish
+
+# jq is required to inspect the config. Its absence is already in BASELINE_MSG;
+# just finish (we cannot parse the config without it).
+command -v jq >/dev/null 2>&1 || finish
 
 # Locate the tlm block: settings.local.json first, then the fallback file.
 TLM=""
@@ -41,8 +82,8 @@ if [ -z "$TLM" ] && [ -f "$ALT" ]; then
 fi
 
 # settings.local.json exists but carries no tlm block. That is a normal, complete
-# state for a project that only uses the coding skills -> silent.
-[ -n "$TLM" ] || exit 0
+# state for a project that only uses the coding skills -> nothing tlm to report.
+[ -n "$TLM" ] || finish
 
 MISSING=""
 add() { MISSING="${MISSING}  - $1"$'\n'; }
@@ -95,9 +136,12 @@ if [ -f "$CFG" ] && command -v git >/dev/null 2>&1; then
   fi
 fi
 
-# Everything present -> silent.
-[ -n "$MISSING" ] || exit 0
+# Everything present -> only the OpenSpec reminder (if any).
+[ -n "$MISSING" ] || finish
 
+# Config is incomplete: lead with baseline + OpenSpec reminders (if present), then the gaps.
+[ -n "$BASELINE_MSG" ] && { printf '%s\n' "$BASELINE_MSG"; echo ""; }
+[ -n "$OPENSPEC_MSG" ] && { printf '%s\n' "$OPENSPEC_MSG"; echo ""; }
 echo "[project-setup] This project's workflow-skill config is incomplete:"
 echo ""
 printf '%s' "$MISSING"
@@ -108,7 +152,9 @@ echo "   the user's actual request to fix it."
 echo "2. Offer /project-setup to complete it. If they decline, continue normally and do not re-offer."
 echo "3. If a SECURITY line appears above, raise that one immediately and specifically — a tracked"
 echo "   settings.local.json means credentials are about to be committed."
-echo "4. When a workflow skill later needs one of these values, ask for it inline at planning time"
-echo "   rather than failing. Exception: a Figma design fetch that errors is a HARD STOP — never"
-echo "   write UI code from a guessed design."
+echo "4. A capability that is ENABLED but incomplete is ALL-OR-NOTHING: when its workflow skill runs,"
+echo "   REQUIRE the companion — finish /project-setup, or set the capability's enabled:false — rather"
+echo "   than running a degraded / local-only version. Still-missing single VALUES (a channel id, a"
+echo "   status name) within a connected capability are asked inline. Figma remains a HARD STOP:"
+echo "   never write UI code from a guessed design."
 exit 0

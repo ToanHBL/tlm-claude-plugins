@@ -6,21 +6,15 @@
     "project actually needs, verifies each MCP with a real call, and writes this file for you.",
     "Every key is documented in ./tlm-config.reference.json.",
     "",
-    "Delete any mcpServers entry your project does not use. Keep context7 always."
+    "context7 + framelink-figma MCP servers ship WITH the plugin (bundled in plugin.json) — do NOT",
+    "redefine them here. This file only holds the Figma token (env), OAuth-connector notes, and tlm."
   ],
 
-  "mcpServers": {
-    "context7": {
-      "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp@latest"]
-    },
-
-    "framelink-figma": {
-      "//": "Only if tlm.design.enabled. Token is referenced from env below — never inlined.",
-      "command": "npx",
-      "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
-    }
-  },
+  "//mcpServers": [
+    "context7 and framelink-figma are bundled by the plugin and load automatically — nothing to add.",
+    "The bundled Framelink server reads FIGMA_ACCESS_TOKEN from the env block below.",
+    "Add an mcpServers block here ONLY for a project-specific server the plugin does not bundle."
+  ],
 
   "//mcpConnectors": [
     "ClickUp and Slack are OAuth connectors, not stdio servers — they do NOT appear above.",

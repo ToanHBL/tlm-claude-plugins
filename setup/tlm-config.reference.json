@@ -43,8 +43,9 @@
       "usedBy": ["all skills", "the global context7 rule"],
       "secret": false,
       "detectBy": "tool name matches mcp__context7__* (resolve-library-id, query-docs)",
+      "bundled": true,
       "install": {
-        "command": "claude mcp add context7 -- npx -y @upstash/context7-mcp@latest",
+        "note": "BUNDLED with the plugin (mcpServers in .claude-plugin/plugin.json) — loads automatically on install; do NOT add it to a project's settings.local.json. Requires Node for npx.",
         "settingsSnippet": {
           "command": "npx",
           "args": ["-y", "@upstash/context7-mcp@latest"]
@@ -61,12 +62,13 @@
       "secretKey": "FIGMA_ACCESS_TOKEN",
       "detectBy": "tool name matches mcp__*[Ff]ramelink* or mcp__*[Ff]igma*",
       "howToGetSecret": "Figma → your avatar → Settings → Security → Personal access tokens → Generate new token. Scope: File content (read). Token looks like figd_xxxxxxxx.",
+      "bundled": true,
       "install": {
+        "note": "BUNDLED with the plugin (mcpServers in plugin.json) — do NOT redefine it per project. The bundled server reads FIGMA_ACCESS_TOKEN from the project's env block; the ${FIGMA_ACCESS_TOKEN:-} default lets it start before the token is set. The ONLY per-project step is putting the token in env. NEVER paste a figd_ token into a committed file.",
         "settingsSnippet": {
           "command": "npx",
-          "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
-        },
-        "note": "Prefer the ${FIGMA_ACCESS_TOKEN} form with the value in the `env` block, so the token appears exactly once and is easy to rotate. NEVER paste a figd_ token into a committed file."
+          "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN:-}", "--stdio"]
+        }
       }
     },
 
@@ -125,6 +127,78 @@
         "steps": "claude.ai → Settings → Connectors → Slack → Connect (OAuth). Then /mcp in Claude Code to confirm."
       },
       "note": "Channel IDs are NOT secrets — they live in tlm.chat.channels."
+    }
+  },
+
+  "companions": {
+    "$comment": [
+      "AUTHORITATIVE list of the external dependencies ('companion plugins/tools') this plugin needs,",
+      "plus the ENFORCEMENT RULE. Required-by-capability:",
+      "  1. The BASELINE is always expected.",
+      "  2. A capability's companions are required ONLY when that capability is enabled — but then they",
+      "     are REQUIRED, not best-effort.",
+      "  3. A capability is ALL-OR-NOTHING: either enabled:true with every companion installed AND",
+      "     verified with a real call, or enabled:false. There is no half-configured middle state.",
+      "  4. A workflow skill MUST NOT run a half-configured capability. If a companion is missing, it",
+      "     points the user at /project-setup to finish setup OR to set the capability's enabled:false,",
+      "     then stops that skill. It does NOT limp along in a degraded 'local-only' mode.",
+      "  5. Coding skills (fe-coding, rule-capture) have NO capability companions and always run.",
+      "This block documents CLIs (jq/node/gh/az/openspec) not covered under mcpServers; for MCP servers",
+      "it points back to the mcpServers entries above."
+    ],
+    "baseline": {
+      "requiredWhen": "always",
+      "items": {
+        "node": {
+          "kind": "cli",
+          "purpose": "Runs the npx-based MCP servers (context7, Framelink) and the OpenSpec CLI.",
+          "minVersion": "18+ generally; >= 20.19.0 required if the spec-driven skill is used",
+          "verify": "node -v",
+          "install": "https://nodejs.org, or a version manager (nvm / fnm / volta)"
+        },
+        "jq": {
+          "kind": "cli",
+          "purpose": "Both hooks (SessionStart setup-check, PostToolUse lint-fe) parse their JSON payload with jq. Without jq BOTH hooks exit SILENTLY — no config warnings, no rule linting — and nothing tells the user enforcement is off. Treat as required.",
+          "verify": "command -v jq",
+          "install": "brew install jq (macOS) · apt install jq (Debian/Ubuntu) · choco install jq (Windows)"
+        },
+        "context7": {
+          "kind": "mcp",
+          "seeMcpServers": "context7",
+          "purpose": "Current library/framework docs. Expected for every skill.",
+          "hardness": "recommended — its absence downgrades doc-fetching but never blocks coding; still set it up as part of the baseline"
+        }
+      }
+    },
+    "capabilities": {
+      "design": {
+        "enabledBy": "tlm.design.enabled",
+        "requiredWhen": "tlm.design.enabled === true",
+        "companions": ["mcpServers.framelink-figma", "env.FIGMA_ACCESS_TOKEN", "baseline.node"],
+        "ownedBy": ["figma-to-code"],
+        "hardness": "HARD STOP — with the capability on but the design unfetchable, there is no reduced deliverable; the skill writes no UI code rather than guessing."
+      },
+      "tickets": {
+        "enabledBy": "tlm.tickets.enabled",
+        "requiredWhen": "tlm.tickets.enabled === true",
+        "companions": ["the MCP/CLI for tlm.tickets.system — clickup | jira | linear | azure-devops (az) | github (gh)"],
+        "ownedBy": ["ticket-workflow", "deployment-checklist", "mobile-release-notes"],
+        "hardness": "REQUIRED — the skill blocks until the tracker is connected AND one real ticket verifies (name + status). If the user cannot connect it, they set tlm.tickets.enabled=false; the skill does not run in a degraded local-only mode."
+      },
+      "chat": {
+        "enabledBy": "tlm.chat.enabled",
+        "requiredWhen": "tlm.chat.enabled === true",
+        "companions": ["mcpServers.slack"],
+        "ownedBy": ["mobile-release-notes"],
+        "hardness": "REQUIRED for the post step — the note text may still be produced, but posting blocks until Slack is connected and a draft verifies, or the user sets tlm.chat.enabled=false."
+      },
+      "specDriven": {
+        "enabledBy": "tlm.specDriven.engine === 'openspec', or an openspec/ directory at the repo root",
+        "requiredWhen": "only when spec-driven work is opted into for a given ticket (per-ticket gate)",
+        "companions": ["baseline.node (>= 20.19.0)", "the openspec CLI via npx"],
+        "ownedBy": ["spec-driven"],
+        "hardness": "DEGRADES — opt-in per ticket; if Node < 20.19 or npm is unreachable, fall back to ordinary fe-coding. Never a hard block."
+      }
     }
   },
 
@@ -292,6 +366,31 @@
 
     "docs": {
       "mcp": { "type": "string", "default": "context7", "description": "MCP used to fetch up-to-date library docs. Always required." }
+    },
+
+    "specDriven": {
+      "$comment": "Spec-driven mode via OpenSpec (an external npm CLI, driven through npx — NOT an MCP). The spec-driven skill bootstraps it and drives its propose->apply->sync->archive loop. Detected by an openspec/ directory at the repo root; this block records the intent so the SessionStart hook can remind Claude.",
+      "engine": {
+        "type": "enum",
+        "values": ["openspec", "none"],
+        "default": "none",
+        "description": "Spec engine for this project. 'openspec' means the spec-driven skill drives OpenSpec. Set once the repo is bootstrapped (openspec/ exists).",
+        "source": "set to 'openspec' after the spec-driven skill runs `npx openspec init`, or ask the user"
+      },
+      "mode": {
+        "type": "enum",
+        "values": ["ask-per-ticket", "off"],
+        "default": "ask-per-ticket",
+        "description": "'ask-per-ticket' — when a ticket or substantial feature starts, the skill ASKS whether to apply OpenSpec; only on yes does it run the OpenSpec loop, otherwise the normal rules skills run. Trivial fixes are never gated. 'off' — spec-driven suppressed even though openspec/ exists."
+      },
+      "announceCommands": {
+        "type": "boolean",
+        "default": true,
+        "description": "Print a one-line notice before running any openspec / npx openspec / /opsx:* command so the user is aware of what is triggered. Keep true — transparency is the trade for auto-driving."
+      },
+      "detect": { "openspecDir": "an openspec/ directory at the repo root (created by `openspec init`)" },
+      "requires": "Node >= 20.19.0 for the OpenSpec CLI. Below that, or offline, the skill falls back to ordinary fe-coding.",
+      "unifiesWith": "tlm.tickets.planDir — when spec-driven is on, a ticket's OpenSpec change (openspec/changes/<ticket-id>-<slug>/) IS the plan; the ad-hoc plan file is not written."
     }
   },
 
@@ -314,13 +413,13 @@
       "mcp": ["context7", "<the MCP for tlm.tickets.system>"],
       "config": ["tlm.tickets.system", "tlm.tickets.idPattern", "tlm.tickets.statuses", "tlm.project.baseBranch"],
       "secrets": [],
-      "ifMissing": "Ask for the ticket system + id pattern inline, verify with one real test fetch, then persist to settings.local.json before continuing. If the tracker is unreachable, offer local-only mode: branch + plan + implementation, ticket sync deferred."
+      "ifMissing": "tickets is an all-or-nothing capability (see companions). If tlm.tickets.enabled is true, REQUIRE the tracker: ask for the system + id pattern inline, connect the MCP/CLI, and verify with one real ticket fetch (name + status) before continuing. If it cannot be connected now, do NOT run a degraded local-only mode — stop and offer two choices: finish setup via /project-setup, or set tlm.tickets.enabled=false to proceed without a tracker. Persist whatever is configured."
     },
     "mobile-release-notes": {
       "mcp": ["context7", "<the MCP for tlm.tickets.system>", "slack (only if tlm.chat.enabled)"],
       "config": ["tlm.project.type (must be one of mobileValues)", "tlm.tickets.urlTemplate", "tlm.chat.channels", "tlm.project.apps"],
       "secrets": [],
-      "ifMissing": "Ask for the release channel id and the build numbers inline. If Slack is unavailable, still produce the note and print it for manual posting. If the project is web-only, stop and point at deployment-checklist instead."
+      "ifMissing": "chat is an all-or-nothing capability (see companions). If tlm.chat.enabled is true, the note text may still be produced, but the POST step REQUIRES Slack connected and a draft verified — do not skip silently. If Slack cannot be connected, stop at the post step and offer: finish setup via /project-setup, or set tlm.chat.enabled=false (produce the note for manual posting). If the project is web-only, stop and point at deployment-checklist instead."
     },
     "rule-capture": {
       "mcp": [],
@@ -333,13 +432,24 @@
       "config": ["tlm.tickets.*", "tlm.project.baseBranch"],
       "secrets": [],
       "ifMissing": "Falls back to its own PHASE 0 bootstrap."
+    },
+    "spec-driven": {
+      "mcp": [],
+      "cli": ["openspec (via npx; needs Node >= 20.19)"],
+      "config": ["tlm.specDriven.engine", "tlm.specDriven.mode"],
+      "secrets": [],
+      "ifMissing": "No MCP or secret needed — OpenSpec is a CLI driven via npx. If openspec/ is absent, offer to bootstrap it (`npx openspec init --tools claude`). If Node < 20.19 or npm is unreachable, report it and fall back to ordinary fe-coding — never a hard stop. Applied per ticket only when the user agrees; otherwise the normal rules skills run."
     }
   },
 
   "rules": [
     "NEVER write a secret into any file that is not gitignored. settings.local.json only.",
     "NEVER print a secret value back to the user or into a commit, comment, or log.",
-    "A missing value is asked for INLINE during planning — never silently defaulted, never a hard stop.",
+    "A capability is ALL-OR-NOTHING (see companions): if it is enabled, its companions are REQUIRED and verified before the owning skill runs; a missing companion stops that skill with two choices — finish setup via /project-setup, or set the capability enabled:false. No half-configured / degraded local-only mode.",
+    "Within an enabled capability, a still-missing VALUE (e.g. a channel id, a status name) is asked for INLINE during planning and persisted — the requirement is on the companion being connected+verified, not on drip-feeding every value up front.",
+    "The BASELINE (context7, jq, node) is expected in every project; jq and node absences are surfaced loudly because the hooks and npx-based servers silently no-op without them.",
+    "Coding skills (fe-coding, rule-capture) have no capability companions and always run, even with zero config.",
+    "At setup, DETECT the project's own rules/specs (CLAUDE.md, AGENTS.md, .cursorrules, .claude/rules, openspec/, docs/specs, eslint/prettier/biome/tsconfig) and HONOR them. The plugin's house rules layer on top and DEFER to an explicit project rule where they conflict — never silently override a documented project convention; surface the conflict and route a persistent override through rule-capture. Record the catalog in .claude/codebase-map.md.",
     "After collecting a value at runtime, offer to persist it so the next run does not ask again.",
     "Verify a newly configured integration with one real read (fetch a ticket, resolve a Figma file) before relying on it."
   ]

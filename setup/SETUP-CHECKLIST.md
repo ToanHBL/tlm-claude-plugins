@@ -10,11 +10,20 @@ gating questions in **one** round, then shows **one** form with every value you 
 (each with instructions), verifies each integration with a real call, and writes the config for you.
 This file is the reference it follows, and the thing to read when something breaks.
 
-> **Almost nothing here is a hard gate.** A skill that hits a missing value asks for it *inline, during
-> planning*, then offers to persist it. You never get stopped at step one with nothing delivered.
+> **A capability is all-or-nothing.** Each capability below (design / tickets / chat) is either
+> **enabled with every companion installed *and* verified**, or **turned off**. A workflow skill will
+> **not** run a half-configured capability — if a companion is missing it stops and points you back here
+> (or to `/project-setup`) to finish setup or set that capability's `enabled:false`. There is no
+> degraded "local-only" middle mode. *Single values* within a connected capability (a channel id, a
+> status name) are still asked inline during planning — the requirement is on the companion being
+> connected and verified.
 >
-> **The one exception is Figma** (Step 2). If the design can't be fetched, `figma-to-code` **stops** and
-> writes no UI code rather than approximating the design — see that step for why.
+> **Figma is the hardest stop** (Step 2): with design enabled but the file unfetchable, `figma-to-code`
+> writes no UI code rather than approximating the design. **`spec-driven` is the exception that
+> degrades** — it's opt-in per ticket and falls back to ordinary coding if OpenSpec isn't available.
+>
+> **Coding needs none of this.** `fe-coding` and `rule-capture` have no capability companions and run
+> with zero config.
 
 ---
 
@@ -38,6 +47,20 @@ If that prints nothing, add `.claude/settings.local.json` to `.gitignore` **firs
 
 ---
 
+## Prerequisites — baseline companion tools (always)
+
+Install these before anything else — they're the baseline every capability builds on
+(`companions.baseline` in `tlm-config.reference.json`):
+
+- [ ] **Node.js** — runs the `npx`-based MCP servers (context7, Framelink) and the OpenSpec CLI.
+      `node -v`. Use **≥ 20.19** if you'll use `spec-driven`.
+- [ ] **`jq`** — both plugin hooks (SessionStart config check, PostToolUse lint) parse JSON with it.
+      **Without `jq` both hooks exit silently** — no config warnings, no rule linting, no signal that
+      enforcement is off. `brew install jq` / `apt install jq` / `choco install jq`.
+- [ ] **context7 MCP** — see Step 1 (recommended for every skill).
+
+---
+
 ## Step 0 — Answer four questions
 
 `/project-setup` asks these. They decide which of the steps below apply to you.
@@ -49,26 +72,15 @@ If that prints nothing, add `.claude/settings.local.json` to `.gitignore` **firs
 
 ---
 
-## Step 1 — context7 MCP  · ALWAYS REQUIRED
+## Step 1 — context7 MCP  · BUNDLED WITH THE PLUGIN
 
 Fetches current library docs so answers don't come from stale training data. Every skill leans on it.
 
-- [ ] Installed
-
-```bash
-claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
-```
+**Nothing to install** — context7 ships with the plugin (bundled `mcpServers`) and loads automatically on
+install. You only need Node available for `npx`.
 
 - [ ] **Verify** — `/mcp` lists `context7`, and `resolve-library-id` returns a hit for a known library.
-
-<details><summary>Manual settings.local.json entry</summary>
-
-```json
-"mcpServers": {
-  "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp@latest"] }
-}
-```
-</details>
+- [ ] If it's **not** listed: the plugin didn't load, or `npx`/Node is missing — not a per-project gap.
 
 ---
 
@@ -84,20 +96,13 @@ design fetch that skill **stops and writes no UI code**. It will not approximate
 name, a screenshot, or your description: a guessed screen *looks* finished, so nobody re-checks it, and
 every wrong spacing, color and hierarchy then gets reviewed as if it were the design.
 
+The Framelink server itself is **bundled with the plugin** — you do **not** add it to `mcpServers`. It
+reads the token from your project's env, so all you supply is the token:
+
 - [ ] **Get a Figma token** — Figma → avatar → *Settings* → *Security* → *Personal access tokens* →
       *Generate new token*. Scope: **File content (read)**. Starts with `figd_`.
-- [ ] **Store the token** in `.claude/settings.local.json` → `env.FIGMA_ACCESS_TOKEN`
-- [ ] **Add the server**, referencing the env key rather than inlining the token:
-
-```json
-"mcpServers": {
-  "framelink-figma": {
-    "command": "npx",
-    "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
-  }
-}
-```
-
+- [ ] **Store the token** in `.claude/settings.local.json` → `env.FIGMA_ACCESS_TOKEN` (the bundled server
+      expands `${FIGMA_ACCESS_TOKEN}` from there).
 - [ ] **Verify** — paste any Figma file URL and confirm the file metadata comes back.
 
 > ⚠️ **Never inline a `figd_` token into a committed file.** A token pasted directly into

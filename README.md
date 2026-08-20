@@ -18,7 +18,8 @@ tlm-claude-plugins/
 │   ├── figma-to-code/           # Figma design → screen (hard-stops without the design)
 │   ├── ticket-workflow/         # ticket → branch → plan → implement → sync back
 │   ├── mobile-release-notes/    # commits → plain-language build notes → Slack draft (mobile only)
-│   └── deployment-checklist/    # release check: tickets, services, migrations
+│   ├── deployment-checklist/    # release check: tickets, services, migrations
+│   └── spec-driven/             # drives OpenSpec (propose→apply→archive); offered per ticket
 ├── setup/                   # integration contract — ships with the plugin, used from ANY project
 │   ├── SETUP-CHECKLIST.md       # the walkthrough
 │   ├── tlm-config.reference.json# machine-readable schema Claude consults
@@ -63,12 +64,44 @@ genuinely needed — not for modernness.
 | **ticket-workflow** | `TLM-1234`, a ticket URL, "work on task" | ticket tracker MCP |
 | **mobile-release-notes** | a commit range, "release notes" | tracker + Slack; mobile projects only |
 | **deployment-checklist** | "release check", "deployment checklist" | ticket tracker |
+| **spec-driven** | "openspec", "spec-driven", `/opsx:*`, an `openspec/` dir | OpenSpec CLI via `npx` (Node ≥ 20.19) |
 
 They're tracker-agnostic — ClickUp, Jira, Linear, Azure DevOps or GitHub Issues, resolved from config.
 
-## Setup
+## Install & set up
 
-The coding skills need nothing. The workflow skills need credentials and project facts:
+### Prerequisites
+
+- **Claude Code** + **git**.
+- **Node.js** — for the `npx`-based MCP servers (context7, Framelink Figma). Use **≥ 20.19** if you'll
+  touch the `spec-driven` skill (OpenSpec's CLI requires it).
+- **`jq`** — both hooks (`SessionStart` config check, `PostToolUse` lint) need it. Without `jq` they exit
+  **silently**: no config warnings, **no rule linting**, and nothing tells you enforcement is off.
+  `brew install jq` (macOS) / `apt install jq` (Debian/Ubuntu).
+
+### Install
+
+This repo is both a **plugin** and a **marketplace**:
+
+```bash
+# 1. Add as a marketplace — a git URL or a local path.
+#    NOT a direct URL to marketplace.json: source:"./" only resolves against a cloned / local copy.
+/plugin marketplace add <git-url-or-local-path>
+
+# 2. Install — available in ALL your projects afterward
+/plugin install tlm-claude-plugins@tlm-claude-plugins
+
+# 3. Accept the trust prompt, then verify
+/help          # the skills appear; fe-coding triggers automatically on frontend work
+```
+
+Update after changes: `/plugin marketplace update tlm-claude-plugins`. The version is bumped on every
+release, so updates aren't served from a stale cache.
+
+### Configure — only for the workflow skills
+
+The coding skills need **nothing** — just start coding. The workflow skills need credentials and project
+facts:
 
 ```
 /project-setup
@@ -76,27 +109,14 @@ The coding skills need nothing. The workflow skills need credentials and project
 
 It scans what's detectable, asks the gating questions in **one** round, then shows **one** form for
 everything you must supply — each row with instructions on where to get it. Config lands in
-`.claude/settings.local.json` (gitignored): `mcpServers`, `env` for secrets, and a `tlm` block for
-non-secret project facts.
+`.claude/settings.local.json` (gitignored): `env` for secrets and a `tlm` block for non-secret project
+facts.
 
-Full walkthrough and troubleshooting: [`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
-
-## Install
-
-This repo is both a **plugin** and a **marketplace**:
-
-```bash
-# 1. Add this repo as a marketplace (git URL, or a local path)
-/plugin marketplace add <git-url-or-local-path>
-
-# 2. Install — available in ALL your projects afterward
-/plugin install tlm-claude-plugins@tlm-claude-plugins
-
-# 3. Verify
-/help          # the skills appear; fe-coding triggers automatically on frontend work
-```
-
-Update after changes: `/plugin marketplace update tlm-claude-plugins`.
+**The context7 and Framelink Figma MCP servers ship with the plugin** (bundled `mcpServers`), so they
+load automatically on install — no per-project `mcpServers` entry needed. You only supply the Figma
+**token** (`env.FIGMA_ACCESS_TOKEN`) and connect the OAuth connectors that can't be bundled (ClickUp /
+Slack, at claude.ai → Connectors). Full walkthrough and troubleshooting:
+[`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
 
 ### Alternative: personal skills
 
@@ -108,12 +128,34 @@ ln -s "$(pwd)/skills/"* ~/.claude/skills/     # or cp -R
 Instant, but not versioned or shareable — and `${CLAUDE_PLUGIN_ROOT}` won't resolve, so the skills fall
 back to their inline schemas.
 
-## Verifying it works
+## Usage context — when each part kicks in
 
-Ask Claude, in any project: *"Create a product list screen."* It should place logic in
-`_modules/pages/Product/ProductListScreen.tsx`, use `Col`/`Row`/`TextPrimary`, navigate with `Link` (or
-`router.navigate` on RN), fetch via a `useQuery` hook or a Server Component, render a visible empty
-state, and skip pre-optimized handlers.
+Three ways the plugin shows up, by how much you've set up:
+
+**1. Pure coding — zero config.** Open any frontend repo and ask for work: *"Create a product list
+screen."* `fe-coding` auto-detects the stack, then places logic in
+`_modules/pages/Product/ProductListScreen.tsx`, uses `Col`/`Row`/`TextPrimary`, navigates with `Link`
+(or `router.navigate` on RN), fetches via a `useQuery` hook or a Server Component, renders a visible
+empty state, and skips pre-optimized handlers. The `PostToolUse` hook lints each edit and feeds any
+violation back so Claude self-corrects the same turn. **No input needed.** Correct Claude with a reason
+— *"use `navigate`, `push` duplicates the screen on a spam tap"* — and `rule-capture` offers to persist
+it (see below).
+
+**2. Workflow — run `/project-setup` once per repo.** Triggered by a ticket id (`TLM-1234`), a
+figma.com link, a commit range, or "release check". The first time, `/project-setup` collects — in one
+form — the project type (auto-detected) and, depending on what you enable: a Figma token, a
+ticket-tracker connector + one ticket URL + its statuses, a Slack channel id. Everything is remembered
+afterward. **Each capability is all-or-nothing**: if you enable it, its companion (tracker connector,
+Slack, Figma MCP) must be connected *and* verified — otherwise the skill stops and asks you to finish
+`/project-setup` or turn that capability off, rather than limping along half-configured. Single values
+within a connected capability are still asked inline. **Figma is the hardest stop** (no UI code from a
+guessed design).
+
+**3. Spec-driven (OpenSpec) — per ticket, opt-in.** In a repo with an `openspec/` directory, the
+SessionStart hook reminds Claude the repo can run spec-first. On a new capability or behaviour change it
+asks once: *apply OpenSpec for this one?* **Yes** → it drives `propose → apply → sync → archive`
+(bootstrapping via `npx openspec init` the first time; needs Node ≥ 20.19), announcing each CLI command
+so you see what's triggered. **No** → the normal coding skills run. Trivial fixes are never gated.
 
 Each `tests/*` folder is a real project generated from one shared User-CRUD spec, with a
 `PROJECT-NOTES.md` mapping every file back to the rule it follows. See [`tests/README.md`](tests/README.md).

@@ -86,7 +86,15 @@ On the **first** substantive task in a repo, after that scan, persist a short ma
 - Base primitives: BaseButton, BaseInput, BaseSelect, BaseTable, BaseEmptyFallBack
 - api clients: apiClientBook, apiClientUser  (pattern: apiClient[Domain].ts)
 - notable: i18n via t(); design tokens in src/styles/theme.ts
+- project rules: CLAUDE.md, .eslintrc, openspec/ (honored; house rules defer where they conflict)
 ```
+
+**Honor the project's own rules.** If the repo documents its own conventions — `CLAUDE.md`, `AGENTS.md`,
+`.cursorrules`, `.claude/rules/`, an `openspec/` spec, or lint/`tsconfig` settings — read them and apply
+them. The house rules below **layer on top of** these and **defer to an explicit project rule where they
+conflict** (e.g. the project deliberately allows a pattern these rules forbid). Don't silently override a
+documented project convention; surface the conflict and, if it should stick, route it through
+`rule-capture`. `project-setup` PHASE 0.4 catalogs these into the map.
 
 On **later** sessions, read `.claude/codebase-map.md` first and skip the directory scan. Re-scan only
 when it looks stale — a `Base*` primitive you expect is absent, the detected stack disagrees with the

@@ -53,13 +53,22 @@ auto-detect → ask), applies the shared `_modules/` base, then layers the stack
 are workflow skills, tracker-agnostic (ClickUp / Jira / Linear / Azure DevOps / GitHub, resolved from
 config):
 
-- `project-setup` — scans missing config, one form, writes `.claude/settings.local.json`.
+- `project-setup` — scans missing config, one form, writes `.claude/settings.local.json`. Also scans the
+  project's **own** rules/specs (`CLAUDE.md`, `.cursorrules`, `.claude/rules`, `openspec/`, lint/tsconfig)
+  and catalogs them into `.claude/codebase-map.md` — the house rules **defer to an explicit project rule
+  where they conflict**, never silently override it (persistent overrides go through `rule-capture`).
 - `rule-capture` — corrective feedback → classify (NEW / GAP / CORRECTION / ONE-OFF) → ask → persist.
 - `figma-to-code` — Figma link → screen; **hard-stops** if the Framelink MCP is missing/unauthorized
   (never approximates a design from a frame name or screenshot).
 - `ticket-workflow` — ticket → branch → plan → implement → sync.
 - `mobile-release-notes` — commit range → plain-language notes → Slack draft (mobile projects only).
 - `deployment-checklist` — release check: tickets, services, migrations.
+- `spec-driven` — drives **OpenSpec** (external `npx` CLI, needs Node ≥ 20.19) for spec-first work:
+  bootstraps `openspec/` + `/opsx:*` commands, then runs propose → apply → sync → archive, enriching
+  `design.md` onto the `_modules/` architecture. **Offered per ticket** (SessionStart hook detects
+  `openspec/` and reminds Claude to ask); applied only if the user agrees, else the normal skills run.
+  Every OpenSpec CLI command is announced first for transparency. Degrades to `fe-coding`, never a
+  hard stop. Config: `tlm.specDriven` in `setup/tlm-config.reference.json`.
 
 ## The `tlm` config contract
 
@@ -68,8 +77,15 @@ fallback `.claude/tlm.local.json`) — never from this repo. The authoritative s
 (meaning, which skill consumes it, whether it's a secret, how to obtain it) is
 `setup/tlm-config.reference.json`. **Read that file before touching anything config-related** — the
 setup skill, the hooks, and `SETUP-CHECKLIST.md` must all agree with it. `skillRequirements` in that
-file is the reverse index: what each skill needs before it can run and how it degrades when a value is
-missing (all degrade gracefully **except** `figma-to-code`, which hard-stops).
+file is the reverse index: what each skill needs before it can run. The `companions` block is the
+authoritative dependency contract and its **enforcement rule**: a **baseline** (context7, `jq`, `node`)
+is always expected, and each capability's companions are **required-by-capability** — a capability is
+**all-or-nothing**, either `enabled:true` with every companion installed *and* verified, or
+`enabled:false`. A workflow skill does **not** run a half-configured capability: it stops and points the
+user to `/project-setup` to finish setup or turn the capability off — no degraded "local-only" mode.
+Coding skills (`fe-coding`, `rule-capture`) have no capability companions and always run, even with zero
+config. `figma-to-code` is the hardest stop (no deliverable without the design); `spec-driven` is the
+one that still degrades (opt-in per ticket, falls back to `fe-coding`).
 
 ## Hooks
 

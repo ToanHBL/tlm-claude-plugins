@@ -28,11 +28,18 @@ Needed: `system`, `idPattern`, `statuses.inProgress`, `statuses.inReview`, `urlT
 Confirm the tracker's MCP is actually reachable (**ToolSearch**, e.g. `mcp__*ClickUp*__clickup_get_task`;
 GitHub Issues uses `gh` instead).
 
-**If config or the MCP is missing — do not stop.** Ask for what's missing *inline, right here*, in one
-focused question, then offer to persist it so the next run doesn't ask. Only `/project-setup` for a full
-first-time setup. If the tracker genuinely can't be reached, say so and offer to proceed **local-only**:
-branch + plan file + implementation, with the ticket sync deferred. That's a real, useful subset — don't
-refuse the whole task over an unreachable tracker.
+**Tickets is an all-or-nothing capability (see `companions` in the reference).** Handle a not-set-up
+tracker like this:
+
+- **Missing single config values** (id pattern, a status name) while the tracker itself is reachable →
+  ask *inline, right here* in one focused question, persist them, continue. A missing value alone does
+  not stop the skill.
+- **Tracker MCP/CLI unreachable, or a real ticket won't fetch** → the capability isn't usable. **Stop**
+  and give the user two choices: finish setup via `/project-setup`, or set `tlm.tickets.enabled=false`
+  to work without a tracker. Do **not** fall back to a degraded local-only (branch + plan only) mode —
+  a ticket workflow with no ticket sync isn't this skill's job.
+
+Verify with one real fetch (name **and** status) before continuing.
 
 ---
 

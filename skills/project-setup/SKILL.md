@@ -80,7 +80,35 @@ Use **ToolSearch** to check which are actually present: `mcp__context7__*`,
 `mcp__*[Ff]ramelink*`/`mcp__*[Ff]igma*`, `mcp__*ClickUp*`/`*[Aa]tlassian*`/`*[Ll]inear*`,
 `mcp__*Slack*`. Also `gh auth status` if GitHub Issues is plausible.
 
-Being listed is not proof it works — that's PHASE 3's job. Here you only need present vs absent.
+`context7` and `framelink-figma` **ship with the plugin** (bundled `mcpServers`), so they should already
+be present — if they aren't, the plugin didn't load or `npx`/Node is unavailable, not a per-project
+config gap. ClickUp/Slack are OAuth connectors and Linear/GitHub are user-added — those genuinely may be
+absent. Being listed is not proof it works — that's PHASE 3's job. Here you only need present vs absent.
+
+### 0.4 Existing project rules & specs (do NOT steamroll them)
+
+This plugin's house rules **layer on top of** whatever the project already documents — and **defer to an
+explicit project rule where they conflict**. Detect what's already here so the project's own conventions
+keep being applied:
+
+```bash
+ls CLAUDE.md AGENTS.md .cursorrules .windsurfrules .github/copilot-instructions.md 2>/dev/null
+ls -d .claude/rules .cursor/rules 2>/dev/null                 # rule folders
+ls -d openspec docs/specs docs/adr 2>/dev/null                # existing specs / ADRs
+ls .eslintrc* eslint.config.* .prettierrc* biome.json* .editorconfig tsconfig*.json 2>/dev/null
+ls .claude/codebase-map.md 2>/dev/null                        # prior scan, if any
+```
+
+- **Read** each that exists. Note where the project **agrees** with the house rules (reinforce) and
+  where it **conflicts** (e.g. it allows raw HTML, uses a different nav pattern, relaxes strict TS).
+- **Conflict resolution: the project's explicit rule wins for that project.** Record and apply it;
+  surface the conflict to the user, and if it's worth persisting route it through `rule-capture` (which
+  writes a project-scoped override to this repo's `CLAUDE.md`). Never silently replace a documented
+  project convention with the plugin default.
+- An existing **`openspec/`** means spec-driven is already set up → plan to set
+  `tlm.specDriven.engine="openspec"` in PHASE 4 (see the `spec-driven` skill).
+- **Record the catalog** in `.claude/codebase-map.md` under a `project rules:` line (sources found +
+  any overrides), so later sessions and `fe-coding` read it before applying defaults.
 
 ---
 
@@ -109,13 +137,9 @@ value marked `<<FILL: what it is>>`, with a comment giving the exact steps to ob
 
 ```jsonc
 {
-  "mcpServers": {
-    "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp@latest"] },
-    "framelink-figma": {
-      "command": "npx",
-      "args": ["-y", "figma-developer-mcp", "--figma-api-key=${FIGMA_ACCESS_TOKEN}", "--stdio"]
-    }
-  },
+  // NOTE: context7 + framelink-figma MCP servers ship WITH the plugin (bundled in plugin.json).
+  // Do NOT add them to mcpServers here — they load automatically on install. This project only
+  // supplies the Figma token below (the bundled server reads ${FIGMA_ACCESS_TOKEN} from env).
   "env": {
     // Figma → avatar → Settings → Security → Personal access tokens → Generate new token
     // Scope: "File content" (read). Starts with figd_
@@ -214,6 +238,11 @@ Merge into the existing file — **preserve keys you didn't touch** (`permission
 - For a capability the user declined, write `"enabled": false` (not an omission) so a later run knows it
   was **answered**, not **unasked**. Skip its empty scaffolding.
 - Keep `chat.sendMode` at `"draft"` unless the user explicitly insists otherwise.
+- If PHASE 0.4 found an `openspec/` directory, set
+  `tlm.specDriven = { "engine": "openspec", "mode": "ask-per-ticket", "announceCommands": true }`.
+- Do **not** write a `mcpServers` block for `context7` or `framelink-figma` — they are bundled by the
+  plugin. Only the Figma **token** goes in `env`. Add `mcpServers` only for a server the plugin doesn't
+  bundle.
 - If the `tlm` key fails to write or vanishes on reload, write that block alone to
   `.claude/tlm.local.json` and say so — skills read it as a fallback.
 
@@ -226,15 +255,19 @@ Re-read and parse the file afterwards to prove it's valid JSON.
 One compact status line per integration:
 
 ```
-context7    ✅ verified
-framelink   ✅ verified (token stored in env)
+context7    ✅ bundled, verified
+framelink   ✅ bundled, verified (token stored in env)
 clickup     ⚠️  connector not authorized — claude.ai → Settings → Connectors, then /mcp
 slack       — skipped (not used by this project)
 
-✓ Wrote .claude/settings.local.json (gitignored)
-✓ Ready now:  fe-coding, figma-to-code, rule-capture
+project rules found:  CLAUDE.md, .eslintrc, openspec/ (spec-driven on)  → honored; 1 conflict noted
+✓ Wrote .claude/settings.local.json (gitignored) · catalog in .claude/codebase-map.md
+✓ Ready now:  fe-coding, figma-to-code, rule-capture, spec-driven
 ⚠ Blocked:    ticket-workflow, deployment-checklist — connect the ClickUp connector above
 ```
+
+If PHASE 0.4 surfaced a project rule that **conflicts** with a house rule, name it here and say it will
+be honored for this project (routed through `rule-capture` if it should persist).
 
 Never print a secret value. Finish by naming which skills are usable now, and list anything still
 outstanding with its exact next action.
@@ -244,20 +277,29 @@ outstanding with its exact next action.
 ## HOW OTHER SKILLS USE THIS
 
 Each workflow skill runs a pre-flight that reads `tlm` from `.claude/settings.local.json` (falling back
-to `.claude/tlm.local.json`), then follows `skillRequirements` in the reference file. The SessionStart
-hook (`hooks/setup-check.sh`) surfaces an incomplete config at session start without blocking anything.
+to `.claude/tlm.local.json`), then follows `skillRequirements` and the `companions` block in the
+reference file. The SessionStart hook (`hooks/setup-check.sh`) surfaces a broken baseline (missing
+`jq`/`node`) and an incomplete config at session start; it informs, it doesn't block — the *skills*
+enforce.
 
-**A missing value is normally not a hard stop.** For every skill except one:
+**A capability is all-or-nothing (see `companions`).** If a capability is `enabled:true`, its companions
+are **required** — connected *and* verified — before the owning skill runs:
 
-1. Do everything that doesn't depend on the missing value first.
-2. Ask for it **inline, during planning** — batched, with where to get it.
-3. Offer to persist it so the next run doesn't ask again.
-4. If the user can't supply it now, degrade explicitly and say what's reduced.
+1. If a companion is missing, **stop that skill** and give the user two choices: finish setup via
+   `/project-setup`, or set the capability's `enabled:false`. Do **not** run a degraded / "local-only"
+   version of an enabled capability.
+2. Within a *connected* capability, a still-missing single **value** (a channel id, a status name) is
+   asked for **inline during planning**, batched, with where to get it — then persisted. The requirement
+   is on the companion being connected and verified, not on collecting every value up front.
+3. The **baseline** (context7, `jq`, `node`) is expected everywhere; `jq`/`node` absences are surfaced
+   loudly because the hooks and npx servers silently no-op without them.
 
-**The one exception: `figma-to-code`.** If the Figma MCP is missing, unauthorized, or the fetch errors,
-it **stops** and writes no UI code. The deliverable is fidelity to a design, so there is no reduced
-version — a screen built from a guess looks finished, so nobody re-checks it, and every wrong value gets
-reviewed as if it were the design.
+**`figma-to-code` is the hardest stop.** Design enabled but the file unfetchable → it writes no UI code.
+There is no reduced version — a screen built from a guess looks finished, so nobody re-checks it, and
+every wrong value gets reviewed as if it were the design.
 
-Otherwise, refuse to continue only when proceeding would be *wrong* rather than merely *reduced* — e.g.
-posting to an unverified channel id, or setting a ticket status whose vocabulary is unknown.
+**`spec-driven` is the one that degrades**, not blocks — it's opt-in per ticket and falls back to
+ordinary `fe-coding` if OpenSpec (Node ≥ 20.19) isn't available.
+
+**Coding skills (`fe-coding`, `rule-capture`) have no capability companions and always run**, even with
+zero config.
