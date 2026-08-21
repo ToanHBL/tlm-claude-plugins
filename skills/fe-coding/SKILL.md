@@ -331,7 +331,10 @@ file read. Load the linked reference when the task needs the depth.
 - Params via `useLocalSearchParams()`, never `useRoute().params`.
 - `app/` files thin → `_modules/pages/…Screen`.
 - **Data-driven lists use `FlatList`** (stable `keyExtractor`, `ListHeaderComponent`,
-  `ListEmptyComponent`) — never `ScrollView` + `.map()`. `ScrollView` is for bounded, hand-authored layouts.
+  `ListEmptyComponent`) — never `ScrollView` + `.map()`. This is **orientation-agnostic**: a horizontal
+  row of data-driven items (filter chips with counts, a card carousel, a chip rail) uses
+  `FlatList horizontal` + `showsHorizontalScrollIndicator={false}`, **not** a horizontal `ScrollView` +
+  `.map()`. `ScrollView` (vertical or horizontal) is only for a small, fixed, hand-authored set that never grows.
 - **`scale()` on every icon size and fixed dimension**, `scaleFont()` on font sizes. Theme tokens are
   pre-scaled once — never scale them again.
 - RN primitives (`View` / `Text` / `Pressable`) only via the `Col` / `Row` / `TextPrimary` / `Base*` wrappers.
