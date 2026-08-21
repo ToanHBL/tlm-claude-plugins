@@ -58,7 +58,7 @@ genuinely needed — not for modernness.
 
 | Skill | Triggers on | Needs |
 |-------|-------------|-------|
-| **project-setup** | "setup config", a skill reporting missing config | — |
+| **project-setup** | "setup config", a skill reporting missing config, or an outdated config schema | — |
 | **rule-capture** | corrective feedback with a reason attached | — |
 | **figma-to-code** | a figma.com link | Framelink MCP (**hard-stops** without it) |
 | **ticket-workflow** | `TLM-1234`, a ticket URL, "work on task" | ticket tracker MCP |

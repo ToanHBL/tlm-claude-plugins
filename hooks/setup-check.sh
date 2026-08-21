@@ -90,6 +90,33 @@ add() { MISSING="${MISSING}  - $1"$'\n'; }
 
 q() { printf '%s' "$TLM" | jq -r "$1 // empty" 2>/dev/null; }
 
+# --- schema version drift ---------------------------------------------------
+# The plugin ships its own copy of the reference schema; a project's tlm.version
+# lags behind it whenever the plugin has updated (e.g. auto-update) and added or
+# changed a key since the project was last configured. This is a distinct concern
+# from MISSING below: a project can be schema-current yet still have blank fields,
+# or schema-behind yet have every currently-known field filled in.
+REF="${CLAUDE_PLUGIN_ROOT:-$(dirname "$0")/..}/setup/tlm-config.reference.json"
+DRIFT=""
+if [ -f "$REF" ]; then
+  PLUGIN_VER="$(jq -r '.configVersion // empty' "$REF" 2>/dev/null)"
+  PROJ_VER="$(q '.version')"
+  if [ -n "$PLUGIN_VER" ] && [ -n "$PROJ_VER" ] \
+     && [ "$PROJ_VER" -eq "$PROJ_VER" ] 2>/dev/null \
+     && [ "$PROJ_VER" -lt "$PLUGIN_VER" ] 2>/dev/null; then
+    CHANGES="$(jq -r --argjson pv "$PROJ_VER" \
+      '(.changelog // []) | map(select(.version > $pv)) | .[] | "  - v\(.version): \(.summary)" + (if .migration then " (" + .migration + ")" else "" end)' \
+      "$REF" 2>/dev/null)"
+    DRIFT="[project-setup] tlm config schema is behind the plugin's: project is v${PROJ_VER}, plugin ships v${PLUGIN_VER}.
+What changed since v${PROJ_VER}:
+${CHANGES}
+
+Run /project-setup to sync — it only adds fields introduced by those versions (asking for any that need
+your input, auto-filling any with a documented default) and never touches or overwrites a value you
+already set."
+  fi
+fi
+
 # --- project ---------------------------------------------------------------
 [ -n "$(q '.project.type')" ]       || add "tlm.project.type is unset — fe-coding will re-detect the stack every session"
 [ -n "$(q '.project.baseBranch')" ] || add "tlm.project.baseBranch is unset — ticket-workflow cannot cut branches"
@@ -136,20 +163,28 @@ if [ -f "$CFG" ] && command -v git >/dev/null 2>&1; then
   fi
 fi
 
-# Everything present -> only the OpenSpec reminder (if any).
-[ -n "$MISSING" ] || finish
+# Everything present and schema current -> only the baseline / OpenSpec reminders (if any).
+[ -n "$MISSING" ] || [ -n "$DRIFT" ] || finish
 
-# Config is incomplete: lead with baseline + OpenSpec reminders (if present), then the gaps.
+# Config is incomplete or schema-behind: lead with baseline + OpenSpec reminders (if present), then
+# the schema drift notice, then the gaps.
 [ -n "$BASELINE_MSG" ] && { printf '%s\n' "$BASELINE_MSG"; echo ""; }
 [ -n "$OPENSPEC_MSG" ] && { printf '%s\n' "$OPENSPEC_MSG"; echo ""; }
-echo "[project-setup] This project's workflow-skill config is incomplete:"
-echo ""
-printf '%s' "$MISSING"
-echo ""
+if [ -n "$DRIFT" ]; then
+  echo "$DRIFT"
+  echo ""
+fi
+if [ -n "$MISSING" ]; then
+  echo "[project-setup] This project's workflow-skill config is incomplete:"
+  echo ""
+  printf '%s' "$MISSING"
+  echo ""
+fi
 echo "ACTION FOR CLAUDE (do this once, at the start of the session):"
-echo "1. Mention the incomplete config briefly — do NOT dump this list verbatim, and do NOT block"
-echo "   the user's actual request to fix it."
-echo "2. Offer /project-setup to complete it. If they decline, continue normally and do not re-offer."
+echo "1. Mention the incomplete/outdated config briefly — do NOT dump either list verbatim, and do NOT"
+echo "   block the user's actual request to fix it."
+echo "2. Offer /project-setup to complete or sync it. If they decline, continue normally and do not"
+echo "   re-offer this session."
 echo "3. If a SECURITY line appears above, raise that one immediately and specifically — a tracked"
 echo "   settings.local.json means credentials are about to be committed."
 echo "4. A capability that is ENABLED but incomplete is ALL-OR-NOTHING: when its workflow skill runs,"

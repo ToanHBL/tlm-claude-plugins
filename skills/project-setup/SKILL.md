@@ -56,6 +56,15 @@ git check-ignore -v .claude/settings.local.json 2>/dev/null || echo "__NOT_IGNOR
   hand-edited file.
 - **`__NOT_IGNORED__`** → add `.claude/settings.local.json` to `.gitignore` **first**, and say so. Never
   put a secret in a tracked file.
+- **`tlm.version` older than the reference's `configVersion`** → a **sync run**: the plugin (and its
+  schema) updated since this project was configured — normal after a teammate's plugin auto-updates.
+  Read `changelog` in `tlm-config.reference.json`, keep only entries with `version` greater than the
+  project's current `tlm.version` — that's exactly what's new. A sync run is narrower than a full repair:
+  in PHASE 2, add to the form **only** the fields those changelog entries introduce (plus anything
+  already missing/placeholder from an ordinary repair, if this is also that). A field with a schema
+  `default` is filled in silently, no question asked; a field with `"source": "ask the user"` and no
+  default goes in the form like any other missing value. Every value the user already set is left
+  untouched, even if it now differs from the schema's default — a sync only adds, never overwrites.
 
 ### 0.2 Project facts
 
@@ -268,7 +277,8 @@ Merge into the existing file — **preserve keys you didn't touch** (`permission
 `${CLAUDE_PLUGIN_ROOT}/setup/settings.local.example.json`.
 
 - Strip every `<<FILL: …>>` marker and instructional comment — the final file is clean JSON.
-- Set `tlm.version` to the reference's `configVersion`.
+- Set `tlm.version` to the reference's `configVersion`. On a sync run this is the whole point — a
+  project only stops being flagged by the SessionStart hook once this write lands.
 - For a capability the user declined, write `"enabled": false` (not an omission) so a later run knows it
   was **answered**, not **unasked**. Skip its empty scaffolding.
 - Keep `chat.sendMode` at `"draft"` unless the user explicitly insists otherwise.
@@ -308,7 +318,7 @@ If PHASE 0.4 surfaced a project rule that **conflicts** with a house rule, name 
 be honored for this project (routed through `rule-capture` if it should persist).
 
 Never print a secret value. Finish by naming which skills are usable now, and list anything still
-outstanding with its exact next action.
+outstanding with its exact next action. On a sync run, add one line: `✓ Synced tlm schema v<old> → v<new>`.
 
 ---
 

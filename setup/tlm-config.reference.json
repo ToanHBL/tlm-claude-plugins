@@ -11,6 +11,14 @@
 
   "configVersion": 1,
 
+  "changelog": [
+    {
+      "version": 1,
+      "summary": "Initial schema."
+    }
+  ],
+  "$changelogNote": "Append an entry here — { version, summary, migration? } — every time a key under `tlm` is added, renamed, or changes meaning, and bump configVersion to match. hooks/setup-check.sh reads this to tell a teammate on an older schema exactly what's new; /project-setup reads it to know which fields to add on a sync run. `migration` is optional free text for anything not self-evident from the summary (e.g. a default to apply, or a value that must be re-asked).",
+
   "storage": {
     "primary": {
       "path": "<project>/.claude/settings.local.json",
