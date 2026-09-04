@@ -14,7 +14,9 @@ tlm-claude-plugins/
 ├── skills/
 │   ├── fe-coding/               # ← the one coding skill; detects the stack, applies the rules
 │   ├── rule-capture/            # corrective feedback → offer to persist it as a rule
-│   ├── project-setup/           # scan missing config → one form → write settings.local.json
+│   │   └── plugin-pr.mjs            # review the rule diff, then PR it upstream
+│   ├── project-setup/           # config + rules copy + the system's other repos → one form
+│   │   └── ecosystem.mjs            # register / clone / index the sibling repos
 │   ├── figma-to-code/           # Figma design → screen (hard-stops without the design)
 │   ├── ticket-workflow/         # ticket → branch → plan → implement → sync back
 │   ├── mobile-release-notes/    # commits → plain-language build notes → Slack draft (mobile only)
@@ -58,7 +60,7 @@ genuinely needed — not for modernness.
 
 | Skill | Triggers on | Needs |
 |-------|-------------|-------|
-| **project-setup** | "setup config", a skill reporting missing config, or an outdated config schema | — |
+| **project-setup** | "setup config", "add repo", a skill reporting missing config, or an outdated config schema | — |
 | **rule-capture** | corrective feedback with a reason attached | — |
 | **figma-to-code** | a figma.com link | Framelink MCP (**hard-stops** without it) |
 | **ticket-workflow** | `TLM-1234`, a ticket URL, "work on task" | ticket tracker MCP |
@@ -68,16 +70,77 @@ genuinely needed — not for modernness.
 
 They're tracker-agnostic — ClickUp, Jira, Linear, Azure DevOps or GitHub Issues, resolved from config.
 
+## Two things every project gets
+
+### The rules live in your repo
+
+`/project-setup` installs the plugin's `skills/ ai/ hooks/ setup/` into **`.claude/tlm-plugin/`**
+(committed) and **that copy is what the project runs on**:
+
+> **Rules root** = `<project>/.claude/tlm-plugin/` if present, else `${CLAUDE_PLUGIN_ROOT}`.
+
+The skills read their rules from that root and the installed hooks delegate to the hooks there — so a rule
+you change is enforced from the next turn, in this repo, without waiting for anything. `${CLAUDE_PLUGIN_ROOT}`
+stays the delivery channel and the fallback; it is a managed clone `/plugin marketplace update` overwrites,
+so it is never edited in place.
+
+Sharing a rule with the team is a **review-then-PR**, both driven by `rule-capture`:
+
+```bash
+node .claude/tlm-plugin/skills/rule-capture/plugin-pr.mjs diff        # what a PR would change upstream
+node .claude/tlm-plugin/skills/rule-capture/plugin-pr.mjs open <slug> # branch, version bump, push, PR (gh)
+```
+
+`diff` is the review gate — it writes nothing and pushes nothing, and Claude shows it to you before
+`open`. Everyone else picks the rule up on their next `/plugin marketplace update`.
+
+### The other repos of your system
+
+A screen calls an API owned by another repo; a type comes from a shared package; a mobile flow mirrors a
+web one. **Guessing those contracts is the failure this prevents** — a plausible endpoint shape passes
+review and breaks at runtime.
+
+`/project-setup` asks once for the repos this project depends on, as a **folder path** or a **git URL**
+(cloned into a shared `~/tlm-ecosystem/`, shallow), then writes **`.claude/ecosystem-map.md`**: each
+repo's stack, layout, where its contracts live, and which of its own rule files govern it. `fe-coding`
+reads that map before assuming anything cross-repo, then opens the real file.
+
+```bash
+node .claude/tlm-plugin/skills/project-setup/ecosystem.mjs add ~/Projects/tlm-api --role backend
+node .claude/tlm-plugin/skills/project-setup/ecosystem.mjs add git@github.com:acme/tlm-web.git --role web
+node .claude/tlm-plugin/skills/project-setup/ecosystem.mjs sync && … ecosystem.mjs index
+```
+
+Registered **per project**, so an unrelated repo never lands in context. The siblings are **read-only
+reference**: Claude opens files in them and never edits, commits or runs anything there.
+
 ## Install & set up
 
 ### Prerequisites
 
-- **Claude Code** + **git**.
-- **Node.js** — for the `npx`-based MCP servers (context7, Framelink Figma). Use **≥ 20.19** if you'll
-  touch the `spec-driven` skill (OpenSpec's CLI requires it).
-- **`jq`** — both hooks (`SessionStart` config check, `PostToolUse` lint) need it. Without `jq` they exit
-  **silently**: no config warnings, **no rule linting**, and nothing tells you enforcement is off.
-  `brew install jq` (macOS) / `apt install jq` (Debian/Ubuntu).
+Exactly two things to install by hand, and they are the same on every platform:
+
+- **Node.js** — runs the plugin's hooks, the rules-PR and ecosystem scripts, the MCP launcher (context7,
+  Framelink Figma) and the OpenSpec CLI. Use **≥ 20.19** if you'll touch the `spec-driven` skill.
+  Windows: the [official installer](https://nodejs.org) or `winget install OpenJS.NodeJS`.
+- **git** — the `settings.local.json` gitignore safety check, the rules PR, cloning the sibling repos of
+  your system, and the ticket discovery the release skills do over commit ranges. Windows: [Git for Windows](https://git-scm.com).
+
+Plus **Claude Code** itself, obviously.
+
+### Platform support
+
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| Hooks (config check, rule lint, vendor watch) | ✅ | ✅ | ✅ |
+| Bundled MCP servers (context7, Framelink Figma) | ✅ | ✅ | ✅ |
+| Rules PR (`plugin-pr.mjs`) · ecosystem clone/index (`ecosystem.mjs`) | ✅ | ✅ | ✅ |
+
+Everything is Node ESM invoked in **exec form**, so there is **no `jq`, `bash`, `sed`, `grep` or `rsync`
+dependency** — none of which ship on Windows. Shell-form `.sh` hooks are a known breakage there (Git Bash
+mangles backslash paths, `.sh` opens in an editor instead of running, `bash` is often off PATH), and a
+bare `npx` MCP command fails with `spawn npx ENOENT`; `mcp/launch.mjs` resolves npm's own `npx-cli.js`
+and runs it with `node` to sidestep that.
 
 ### Install
 
@@ -118,6 +181,33 @@ load automatically on install — no per-project `mcpServers` entry needed. You 
 Slack, at claude.ai → Connectors). Full walkthrough and troubleshooting:
 [`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
 
+#### Onboarding a teammate: hand the answers over, don't ask for them again
+
+Which tracker, which status names, which base branch, which release channel, which sibling repos — those
+are decided **once per project**. Asking each new teammate to answer them again is how two people end up
+with two different `inReview` statuses. So the lead sends an **init doc** with the init command:
+
+```bash
+# lead, in a project that already works — reads .claude/settings.local.json,
+# leaves secrets out, strips per-machine paths, prints the message to send with it
+node <rulesRoot>/skills/project-setup/init.mjs template --from-current --out ~/tlm-init.json
+```
+
+```
+# teammate
+1. save it into the project as .claude/tlm-init.json
+2. /project-setup init
+```
+
+Every value in the doc is applied without a question; you're asked only for what a file cannot carry —
+your own Figma token, and clicking Connect on the connectors. It does **not** skip verification, the
+local rules copy, or cloning the sibling repos: the doc carries their git URLs, not their clones.
+
+Guardrails, because a config file arriving over chat is a trust boundary: a `<<FILL: …>>` placeholder
+counts as unanswered, per-user secrets and per-machine paths already on your machine win over the file,
+`permissions` / `hooks` / `enabledPlugins` are **refused** on import, and the doc is gitignored then
+deleted once applied (`init.mjs consume`). Template: [`setup/tlm-init.template.json`](setup/tlm-init.template.json).
+
 ### Alternative: personal skills
 
 ```bash
@@ -140,6 +230,11 @@ empty state, and skips pre-optimized handlers. The `PostToolUse` hook lints each
 violation back so Claude self-corrects the same turn. **No input needed.** Correct Claude with a reason
 — *"use `navigate`, `push` duplicates the screen on a spam tap"* — and `rule-capture` offers to persist
 it (see below).
+
+**1b. Cross-repo — after `/project-setup` has registered the siblings.** Ask for a screen that talks to
+another system — *"add the vehicle list, it comes from the fleet API"* — and `fe-coding` reads
+`.claude/ecosystem-map.md`, opens the real DTO/route in that repo, and types the client off it. If the
+repo isn't registered it says so and offers to add it, instead of inventing a plausible payload.
 
 **2. Workflow — run `/project-setup` once per repo.** Triggered by a ticket id (`TLM-1234`), a
 figma.com link, a commit range, or "release check". The first time, `/project-setup` collects — in one
@@ -168,9 +263,10 @@ checks what's already written down, and asks whether to persist it as a **plugin
 this repo's `CLAUDE.md` (this project), or memory (how you want to be worked with). The correction and
 the rule land together, so the same fix isn't needed again next week.
 
-Because the plugin installs read-only (a managed clone `/plugin marketplace update` overwrites), a
-**plugin rule is contributed back via a PR, not an in-place edit**. Opt in during `/project-setup` and it
-**vendors** an editable copy of the rules into `.claude/tlm-plugin/`; `rule-capture` then edits that copy
-and `skills/rule-capture/plugin-pr.sh` opens a PR to the upstream (bumping the version in lockstep and
-printing a GitHub compare URL). The rule reaches the whole team on the next `/plugin marketplace update`.
-See [`CLAUDE.md`](CLAUDE.md) → *Contributing rules back*.
+A house rule is written into **this project's rules copy** (`.claude/tlm-plugin/`), so it is in effect
+here from the next turn — the skills read that copy and the hooks delegate to it. Sharing it is a
+separate, deliberate step: `plugin-pr.mjs diff` shows you exactly what would change upstream, and only
+after you approve does `open <slug>` branch, bump the version in lockstep, push and open the PR. The rule
+reaches the rest of the team on their next `/plugin marketplace update`. The installed plugin under
+`${CLAUDE_PLUGIN_ROOT}` is never edited in place — a marketplace update overwrites it. See
+[`CLAUDE.md`](CLAUDE.md) → *Where the rules live*.

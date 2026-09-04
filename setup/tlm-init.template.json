@@ -1,0 +1,169 @@
+{
+  "//": [
+    "TLM INIT DOC — the pre-filled answer sheet for a project's FIRST /project-setup.",
+    "",
+    "WHO FILLS THIS IN: whoever already set the project up (the lead). Everything here is a",
+    "decision that was made once and must be the SAME for everyone — the tracker, the status",
+    "vocabulary, the base branch, the release channel, the sibling repos. A teammate who answers",
+    "those questions again is a teammate who answers one of them differently.",
+    "",
+    "HOW IT IS USED: send this file with the init command. The teammate saves it into the project",
+    "as .claude/tlm-init.json and runs  /project-setup init  — every value below is applied",
+    "WITHOUT a question, and they are asked only for what a file cannot carry: their own Figma",
+    "token, and clicking Connect on the OAuth connectors.",
+    "",
+    "GENERATING IT INSTEAD OF TYPING IT (recommended): in a project that is already configured,",
+    "  node <rulesRoot>/skills/project-setup/init.mjs template --from-current --out ~/tlm-init.json",
+    "That reads .claude/settings.local.json, strips secrets and per-machine paths, and prints the",
+    "handover message to paste alongside the file.",
+    "",
+    "RULES FOR EDITING THIS FILE",
+    "  1. Leave a <<FILL: …>> marker anywhere you do not have the value. A marker is treated as",
+    "     UNANSWERED — it is never imported, and /project-setup asks for it as usual. That is the",
+    "     safe state; a placeholder imported as if it were real looks configured and fails later.",
+    "  2. Delete nothing. An `enabled: false` is an ANSWERED no and is never re-asked; a deleted",
+    "     block is an unasked question and comes back.",
+    "  3. Do NOT add `permissions`, `hooks` or `enabledPlugins` here. They are refused on import —",
+    "     a file that arrives over chat is not how a teammate grants tool access.",
+    "  4. Secrets are per-user by default (see $tlmInit.secrets). Sharing one Figma token makes",
+    "     every read look like yours and breaks the whole team the day it is rotated.",
+    "  5. This file is NOT committed. /project-setup gitignores it, and `init.mjs consume` deletes",
+    "     it once applied. It goes stale the moment the config changes — reissue, don't archive.",
+    "",
+    "Every key below is documented in ./tlm-config.reference.json. This doc's shape IS a",
+    "settings.local.json (`env` + `tlm`) plus the $tlmInit block, so there is no second schema."
+  ],
+
+  "$tlmInit": {
+    "templateVersion": 1,
+    "configVersion": 2,
+    "createdBy": "<<FILL: your name — shown to the teammate so they know the file is yours>>",
+    "createdFor": "<<FILL: which project / team this is for>>",
+    "secrets": "per-user",
+    "//secrets": "per-user = each teammate supplies their own token (the env values below stay markers). included = you deliberately put real tokens in this file; then treat it as a credential and send it the way you would send a password.",
+    "notes": "<<FILL: anything they should know — e.g. 'connect ClickUp first, the rest is done'>>",
+    "howToUse": [
+      "Save this file into the project as .claude/tlm-init.json",
+      "In Claude Code, run:  /project-setup init",
+      "Everything in it is applied without asking; you are asked only for what it cannot carry."
+    ]
+  },
+
+  "//env": [
+    "SECRETS. Kept as markers under secrets:'per-user' — the teammate generates their own and",
+    "/project-setup writes it to their gitignored settings.local.json.",
+    "A value already present on the teammate's machine ALWAYS wins over one in this file."
+  ],
+  "env": {
+    "FIGMA_ACCESS_TOKEN": "<<FILL: per-user — Figma → avatar → Settings → Security → Personal access tokens → Generate, scope 'File content'; starts with figd_>>"
+  },
+
+  "tlm": {
+    "version": 2,
+
+    "//project": "name/type/baseBranch. type is PHASE 1 question 1 — filling it here skips that question.",
+    "project": {
+      "name": "<<FILL: human-readable project name, e.g. Telemax Installer>>",
+      "type": "<<FILL: nextjs-page-router | nextjs-app-router | react-native-expo | react-native-cli | flutter | other>>",
+      "baseBranch": "develop",
+      "//apps": "MONOREPO ONLY — one entry per app so release notes can tell which app a commit range belongs to. Leave the markers in place for a single-app repo and they are dropped.",
+      "apps": [
+        { "name": "<<FILL: app display name>>", "pathPrefix": "<<FILL: apps/installer/>>" }
+      ]
+    },
+
+    "//design": "PHASE 1 question 3a. enabled:false is an answered no — figma-to-code then never asks for a token.",
+    "design": {
+      "enabled": true,
+      "tool": "figma",
+      "mcp": "framelink-figma",
+      "tokenEnvKey": "FIGMA_ACCESS_TOKEN"
+    },
+
+    "//tickets": [
+      "PHASE 1 question 2 plus everything the tracker needs. The statuses are the values worth",
+      "carrying most: they are the team's real vocabulary, they differ per workspace, and a",
+      "teammate guessing them moves tickets into a status your board does not have.",
+      "workspaceId + urlTemplate both come out of ANY ticket URL: https://app.clickup.com/t/<workspaceId>/TLM-1234"
+    ],
+    "tickets": {
+      "enabled": true,
+      "system": "<<FILL: clickup | jira | linear | azure-devops | github>>",
+      "idPattern": "<<FILL: regex for ticket ids in commits, e.g. TLM-\\d+>>",
+      "workspaceId": "<<FILL: from any ticket URL>>",
+      "urlTemplate": "<<FILL: e.g. https://app.clickup.com/t/9016368975/{id} — {id} is substituted>>",
+      "statuses": {
+        "inProgress": "<<FILL: the exact status name work-started uses>>",
+        "inReview": "<<FILL: the exact status name submitted-for-review uses>>",
+        "ready": ["<<FILL: the statuses that mean safe to ship>>"]
+      },
+      "hasDeploymentTicket": true,
+      "planDir": "_docs",
+      "branchPrefixes": { "bug": "fix", "refactor": "refactor", "default": "feat" },
+      "commentLanguage": "en"
+    },
+
+    "//chat": "PHASE 1 question 3b. sendMode stays 'draft' — a human reviews before anything reaches a shared channel. One channel entry per app; `app` matches a project.apps[].name.",
+    "chat": {
+      "enabled": true,
+      "system": "slack",
+      "sendMode": "draft",
+      "channels": [
+        {
+          "app": "<<FILL: app name, or drop this field for a single-app repo>>",
+          "id": "<<FILL: Slack → open channel → View channel details → id at the bottom (C…)>>",
+          "name": "<<FILL: #channel-name>>"
+        }
+      ]
+    },
+
+    "docs": { "mcp": "context7" },
+
+    "//specDriven": [
+      "Left out on purpose. It is DETECTED from an openspec/ directory in the repo being set up —",
+      "carrying it here would claim spec-driven for a project that has no openspec/. Add the block",
+      "only if you know the target repo is already on OpenSpec."
+    ],
+
+    "//ecosystem": [
+      "PHASE 1 question 4 — the other repos of this system Claude may READ while working here.",
+      "This is the highest-value part of the handover: a guessed endpoint shape or shared type",
+      "passes review and breaks at runtime, and only the lead knows which repos matter.",
+      "Give a gitUrl (it is cloned shallow into workspaceRoot on the teammate's machine) — NOT a",
+      "path, which is where the repo happens to live on YOUR machine. workspaceRoot is per-machine",
+      "and deliberately absent so each machine keeps its own default (~/tlm-ecosystem).",
+      "Standalone project? Set enabled:false and delete nothing else."
+    ],
+    "ecosystem": {
+      "enabled": true,
+      "indexFile": ".claude/ecosystem-map.md",
+      "repos": [
+        {
+          "name": "<<FILL: short repo name, also the clone directory>>",
+          "role": "<<FILL: backend | web | mobile | shared-lib | design-system | infra | docs>>",
+          "gitUrl": "<<FILL: clone URL the teammate can actually reach>>",
+          "ref": "develop",
+          "notes": "<<FILL: what THIS project uses from it — 'owns the endpoint DTOs in src/modules/**/dto'>>"
+        }
+      ]
+    },
+
+    "//pluginRepo": [
+      "The project's live rules copy (.claude/tlm-plugin/) and the contribute-back PR target.",
+      "enabled:true is the default and /project-setup installs the copy itself.",
+      "upstreamRemote MUST be a URL that resolves on the TEAMMATE's machine. The plugin default is",
+      "an SSH host alias (git@github.com-hbl:…) that only exists in the ~/.ssh/config of whoever",
+      "set it up — if your team does not share that alias, put the https:// or plain git@ URL here.",
+      "A value the teammate already has is never overwritten by this file."
+    ],
+    "pluginRepo": {
+      "enabled": true,
+      "upstreamRemote": "<<FILL: git URL of the plugin upstream that works on their machine>>",
+      "ownerRepo": "ToanHBL/tlm-claude-plugins",
+      "baseBranch": "develop",
+      "vendorDir": ".claude/tlm-plugin",
+      "prMode": "gh",
+      "bump": "patch"
+    }
+  }
+}

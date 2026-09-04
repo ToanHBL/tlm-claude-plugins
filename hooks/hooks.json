@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/setup-check.sh\""
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/setup-check.mjs"]
           }
         ]
       }
@@ -17,11 +18,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/lint-fe.sh\""
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/lint-fe.mjs"]
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/vendor-watch.sh\""
+            "command": "node",
+            "args": ["${CLAUDE_PLUGIN_ROOT}/hooks/vendor-watch.mjs"]
           }
         ]
       }
