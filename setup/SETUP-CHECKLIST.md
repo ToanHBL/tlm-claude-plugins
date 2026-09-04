@@ -141,6 +141,10 @@ install. You only need Node available for `npx`.
 
 - [ ] **Verify** — `/mcp` lists `context7`, and `resolve-library-id` returns a hit for a known library.
 - [ ] If it's **not** listed: the plugin didn't load, or `npx`/Node is missing — not a per-project gap.
+- [ ] **Optional API key** — context7 works without one. A key only raises rate limits: get it at
+      context7.com/dashboard (`ctx7sk-…`) and store it in `.claude/settings.local.json` → `env.CONTEXT7_API_KEY`.
+      The bundled server expands `${CONTEXT7_API_KEY}` from there; leave it out entirely if you have no key.
+      (Applies after a Claude Code reload picks up the new env.)
 
 ---
 
@@ -183,7 +187,8 @@ Needed by **`ticket-workflow`**, **`mobile-release-notes`**, **`deployment-check
       and an API token from id.atlassian.com → *Security* → *API tokens*
 - [ ] **Linear** — `claude mcp add --transport sse linear https://mcp.linear.app/sse`, then authenticate
 - [ ] **Azure DevOps** — Azure DevOps MCP, or `az login` + `az devops configure`
-- [ ] **GitHub Issues** — no MCP; `gh auth login`
+- [ ] **GitHub Issues** — claude.ai → *Settings* → *Connectors* → GitHub → **Connect** (OAuth, preferred),
+      or fall back to the `gh` CLI: `gh auth login`
 
 ### 3b. Record the project specifics
 
@@ -263,17 +268,21 @@ comes from a shared package, a mobile flow mirrors a web one. Register those rep
 **real** file instead of inventing the contract — a guessed endpoint shape looks right, passes review, and
 fails at runtime.
 
-- [ ] **List them** — for each: a **folder path** (already on disk) or a **git URL** (cloned for you),
-      a `role` (backend / web / mobile / shared-lib / design-system / infra), and one line of `notes` on
-      what this project actually uses from it.
+- [ ] **List them** — for each: a **folder path** (already on disk), a **git URL**, or just the
+      **browse URL you copy from your browser** (a GitHub `…/tree/<branch>` page, an Azure DevOps
+      `…/_git/<repo>?version=GB<branch>` page — `add` turns it into a clone URL + branch); plus a `role`
+      (backend / web / mobile / shared-lib / design-system / infra) and one line of `notes` on what this
+      project actually uses from it.
 - [ ] **Register + fetch** (`/project-setup` does this for you):
 
 ```bash
 RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
 node "$RULES/skills/project-setup/ecosystem.mjs" add ~/Projects/tlm-api --role backend --notes "REST API this app calls"
 node "$RULES/skills/project-setup/ecosystem.mjs" add git@github.com:acme/tlm-web.git --role web --ref develop
-node "$RULES/skills/project-setup/ecosystem.mjs" sync    # clone what's missing, fetch what's there
-node "$RULES/skills/project-setup/ecosystem.mjs" index   # write .claude/ecosystem-map.md
+node "$RULES/skills/project-setup/ecosystem.mjs" add "https://github.com/acme/tlm-web/tree/develop" --role web   # pasted browse URL
+node "$RULES/skills/project-setup/ecosystem.mjs" add "https://dev.azure.com/org/_git/api?version=GBstage" --role backend
+node "$RULES/skills/project-setup/ecosystem.mjs" sync    # clone what's missing, fetch what's there (needs your git auth for private repos)
+node "$RULES/skills/project-setup/ecosystem.mjs" index   # write .claude/ecosystem-map.md (+ "How these repos relate")
 ```
 
 - [ ] **Where clones land** — one shared `workspaceRoot` per machine (default `~/tlm-ecosystem`), so
@@ -281,7 +290,10 @@ node "$RULES/skills/project-setup/ecosystem.mjs" index   # write .claude/ecosyst
       (`depth: 1`); set `depth: 0` on a repo whose git history you actually need to read.
       A repo given as a **folder path stays where it is** — nothing is moved or copied.
 - [ ] **The map** — `.claude/ecosystem-map.md` (committed, no secrets) is what `fe-coding` reads before
-      assuming anything cross-repo. Re-run `index` after adding a repo; never hand-edit it.
+      assuming anything cross-repo. Per repo it records stack, layout, contract paths and the repo's own
+      rules, and ends with a **"How these repos relate"** section (repos grouped by role + any detected
+      shared-package dependency) — the cross-project relationship view. Re-run `index` after adding a repo;
+      never hand-edit it.
 - [ ] **Registered per project** — each repo lists only the siblings *it* needs, so an unrelated repo is
       never pulled into context.
 - [ ] **Verify** — `… ecosystem.mjs list` shows every repo as `present`.

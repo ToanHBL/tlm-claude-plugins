@@ -115,13 +115,16 @@ Stack mapping: `src/app/page.tsx` → `nextjs-app-router` · `src/pages/_app.tsx
 ### 0.3 MCP availability
 
 Use **ToolSearch** to check which are actually present: `mcp__context7__*`,
-`mcp__*[Ff]ramelink*`/`mcp__*[Ff]igma*`, `mcp__*ClickUp*`/`*[Aa]tlassian*`/`*[Ll]inear*`,
-`mcp__*Slack*`. Also `gh auth status` if GitHub Issues is plausible.
+`mcp__*[Ff]ramelink*`/`mcp__*[Ff]igma*`, `mcp__*ClickUp*`/`*[Aa]tlassian*`/`*[Ll]inear*`/`*[Gg]it[Hh]ub*`,
+`mcp__*Slack*`. Also `gh auth status` as a fallback if GitHub Issues is the tracker and no GitHub
+connector is present.
 
 `context7` and `framelink-figma` **ship with the plugin** (bundled `mcpServers`), so they should already
 be present — if they aren't, the plugin didn't load or `npx`/Node is unavailable, not a per-project
-config gap. ClickUp/Slack are OAuth connectors and Linear/GitHub are user-added — those genuinely may be
-absent. Being listed is not proof it works — that's PHASE 3's job. Here you only need present vs absent.
+config gap. **ClickUp, GitHub and Slack are Claude connectors** (claude.ai → Settings → Connectors →
+Connect, OAuth); Linear is user-added (`claude mcp add`). GitHub Issues can alternatively use the `gh`
+CLI. Those genuinely may be absent. Being listed is not proof it works — that's PHASE 3's job. Here you
+only need present vs absent.
 
 ### 0.4 Existing project rules & specs (do NOT steamroll them)
 
@@ -286,25 +289,38 @@ web one. **Guessing those contracts is the failure this phase prevents** — a p
 shape passes review and breaks at runtime. Register the repos so Claude opens the real file instead.
 
 Collect them **in the same form as PHASE 2**, not as a separate conversation. For each: a **folder path**
-(already on disk) or a **git URL** (cloned for you), plus a one-line `role` and `notes` on what this
-project actually uses from it.
+(already on disk), a **git URL**, or the **browse URL the user pastes from their browser** (a GitHub
+`…/tree/<branch>` page, an Azure DevOps `…/_git/<repo>?version=GB<branch>` page) — `add` normalizes it to
+a real clone URL and picks the branch out of it. Plus a one-line `role` and `notes` on what this project
+actually uses from it.
 
 ```bash
 RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
 
+# folder already on disk:
 node "$RULES/skills/project-setup/ecosystem.mjs" add ~/Projects/tlm-api --role backend --notes "REST API this app calls"
+# clone URL:
 node "$RULES/skills/project-setup/ecosystem.mjs" add git@github.com:acme/tlm-web.git --role web --ref develop
+# a pasted browse URL — clone URL + branch are parsed out of it:
+node "$RULES/skills/project-setup/ecosystem.mjs" add "https://github.com/acme/tlm-web/tree/develop" --role web
+node "$RULES/skills/project-setup/ecosystem.mjs" add "https://dev.azure.com/org/_git/api?version=GBstage" --role backend
+
 node "$RULES/skills/project-setup/ecosystem.mjs" sync     # clone what is missing, fetch what is there
-node "$RULES/skills/project-setup/ecosystem.mjs" index    # write .claude/ecosystem-map.md
+node "$RULES/skills/project-setup/ecosystem.mjs" index    # write .claude/ecosystem-map.md (+ relationships)
 ```
 
 - **Clones land in one shared `workspaceRoot`** (default `~/tlm-ecosystem`), so several projects
   referencing the same sibling share a single checkout. Shallow (`depth 1`) — they are references, not
-  repos anyone works in from here.
+  repos anyone works in from here. **Private repos** need the user's own git auth to be set up (SSH keys,
+  Azure PAT / credential manager); if a clone fails, report the exact error and point them at their auth,
+  don't guess the contract.
 - **A repo already on disk stays where it is.** `add <path>` records its `origin` URL too, so a
   teammate's `/project-setup` can clone the same thing.
-- **`index` is what Claude actually reads** — `.claude/ecosystem-map.md`, committed, no secrets. Re-run it
-  after adding a repo.
+- **`index` is what Claude actually reads** — `.claude/ecosystem-map.md`, committed, no secrets. It writes
+  each repo's stack/layout/contracts/own-rules **and a "How these repos relate" section** (the repos
+  grouped by role, plus any detected shared-package dependency). Re-run it after adding a repo. This is
+  the cross-project **relationship file**. Runtime links (an app calling a backend API) are not package
+  deps — capture those in each repo's `notes` so the map records them.
 - **Announce each command before running it**, and never run anything *inside* a sibling repo.
 - Suggest candidates rather than asking blind: sibling directories of this repo that are git repos, and
   repos sharing this one's remote host/org.
@@ -335,7 +351,10 @@ value marked `<<FILL: what it is>>`, with a comment giving the exact steps to ob
   "env": {
     // Figma → avatar → Settings → Security → Personal access tokens → Generate new token
     // Scope: "File content" (read). Starts with figd_
-    "FIGMA_ACCESS_TOKEN": "<<FILL: Figma personal access token>>"
+    "FIGMA_ACCESS_TOKEN": "<<FILL: Figma personal access token>>",
+    // OPTIONAL — context7 works without a key; a key only raises rate limits.
+    // https://context7.com/dashboard (ctx7sk-…). Omit this line entirely if there is no key.
+    "CONTEXT7_API_KEY": "<<FILL: optional context7 key, or omit>>"
   },
   "tlm": {
     "version": 1,
@@ -372,11 +391,14 @@ Fill these in (edit .claude/settings.local.json, or just paste the values here):
   2  Any ClickUp ticket URL   Open any ticket, copy the address bar. I'll extract the
                               workspace id and build the link template from it.
   3  Slack channel id         Slack → channel → View channel details → id at the bottom (C…)
+  4  context7 key (OPTIONAL)  context7.com/dashboard (ctx7sk-…). Skip it — context7 works
+                              without one; a key only raises rate limits.
 
 Also needs your action (I can't do these for you):
   •  ClickUp connector    claude.ai → Settings → Connectors → ClickUp → Connect
+  •  GitHub connector     claude.ai → Settings → Connectors → GitHub → Connect (or: gh auth login)
   •  Slack connector      claude.ai → Settings → Connectors → Slack → Connect
-     Then run /mcp here to confirm both are listed.
+     Then run /mcp here to confirm they are listed.
 
 Reply when done, or paste the values and I'll write them in.
 ```
@@ -397,7 +419,8 @@ encodes, so its `still needed` list *is* the outstanding column.
 | `project.apps[]` | **monorepo only** — detected from `apps/` + `packages/`; ask for the display name of each. Skip entirely for a single-app repo. |
 | `design.enabled` | PHASE 1 Q3 |
 | `design.tool` · `design.mcp` · `design.tokenEnvKey` | schema defaults — write them, never ask |
-| `env.FIGMA_ACCESS_TOKEN` | **form** (secret) |
+| `env.FIGMA_ACCESS_TOKEN` | **form** (secret) — only when `design.enabled` |
+| `env.CONTEXT7_API_KEY` | **form** (secret, **optional**) — offer it, but context7 runs keyless; omit the key entirely if the user has none |
 | `tickets.enabled` · `tickets.system` | PHASE 1 Q2 |
 | `tickets.idPattern` | detected from `git log` — confirm in the form |
 | `tickets.workspaceId` · `tickets.urlTemplate` | **form** — derived from one pasted ticket URL |
@@ -436,7 +459,7 @@ Once values are in, prove each one works with **one real call**. Listed in `/mcp
 
 | Integration | Verification |
 |-------------|-------------|
-| context7 | `resolve-library-id` on a known library (e.g. "next.js") returns a hit |
+| context7 | `resolve-library-id` on a known library (e.g. "next.js") returns a hit. If `CONTEXT7_API_KEY` was set, this same call also proves the key is accepted (a bad key surfaces as an auth error) — but the server needs a Claude Code reload to pick up a newly-written env var. |
 | Framelink Figma | Fetch metadata for a real Figma file URL |
 | Ticket tracker | Fetch one real ticket by id — must return a name **and** a status |
 | Slack | Create a throwaway draft in the target channel |
@@ -482,7 +505,9 @@ Merge into the existing file — **preserve keys you didn't touch** (`permission
 - If PHASE 1.6 registered sibling repos, `ecosystem.mjs add` has already written `tlm.ecosystem` —
   merge, don't overwrite. If the user declined, write `tlm.ecosystem = { "enabled": false }`.
 - Do **not** write a `mcpServers` block for `context7` or `framelink-figma` — they are bundled by the
-  plugin. Only the Figma **token** goes in `env`. Add `mcpServers` only for a server the plugin doesn't
+  plugin. Only the Figma **token** (and the **optional** `CONTEXT7_API_KEY`, if the user has one) go in
+  `env`; the bundled servers read both via `${…:-}` references. Omit `CONTEXT7_API_KEY` entirely when
+  there is no key — do not write an empty string. Add `mcpServers` only for a server the plugin doesn't
   bundle.
 - If the `tlm` key fails to write or vanishes on reload, write that block alone to
   `.claude/tlm.local.json` and say so — skills read it as a fallback.

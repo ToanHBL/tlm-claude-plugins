@@ -55,7 +55,9 @@
     "A value already present on the teammate's machine ALWAYS wins over one in this file."
   ],
   "env": {
-    "FIGMA_ACCESS_TOKEN": "<<FILL: per-user — Figma → avatar → Settings → Security → Personal access tokens → Generate, scope 'File content'; starts with figd_>>"
+    "FIGMA_ACCESS_TOKEN": "<<FILL: per-user — Figma → avatar → Settings → Security → Personal access tokens → Generate, scope 'File content'; starts with figd_>>",
+    "//CONTEXT7_API_KEY": "OPTIONAL and per-user — context7 works without it; a key only raises rate limits. Leave the marker (it is dropped on import) unless a teammate wants to add their own from https://context7.com/dashboard.",
+    "CONTEXT7_API_KEY": "<<FILL: optional per-user context7 key (ctx7sk-…) — leave as-is to skip>>"
   },
 
   "tlm": {

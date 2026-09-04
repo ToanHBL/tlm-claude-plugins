@@ -167,10 +167,14 @@ looks right and fails at runtime, so the rule is: read the real file, never infe
   (default `~/tlm-ecosystem`, one shared clone location per machine), `indexFile`, and `repos[]` with
   `{ name, role, path, gitUrl, ref, depth, notes }`. Registered per project so an unrelated repo is
   never pulled into context.
-- **Script** — `skills/project-setup/ecosystem.mjs`: `preflight | list | add <path-or-giturl> | sync |
-  index`. `add` writes only the `tlm.ecosystem` block back; `sync` clones what is missing (shallow) and
-  fetches what is there; `index` writes `.claude/ecosystem-map.md` — stack, top-level layout, the
-  contract paths worth opening, and the sibling's own rule files.
+- **Script** — `skills/project-setup/ecosystem.mjs`: `preflight | list | add <path | clone-url |
+  browse-url> | sync | index`. `add` writes only the `tlm.ecosystem` block back and **normalizes a pasted
+  browse URL** (a GitHub/GitLab `…/tree/<branch>` page, an Azure DevOps `…/_git/<repo>?version=GB<branch>`
+  page) into a real clone URL + `ref`, so the URL a user copies from their browser is cloneable as-is;
+  `sync` clones what is missing (shallow) and fetches what is there; `index` writes
+  `.claude/ecosystem-map.md` — per repo the stack, top-level layout, contract paths worth opening and the
+  sibling's own rule files, plus a **"How these repos relate" section** (repos grouped by role + any
+  detected shared-package dependency). That map is the cross-project relationship file.
 - **Consumed by** `fe-coding` STEP 1.5 and reported on by `setup-check.mjs` (a registered repo that has
   gone missing from disk is flagged, since the map then names a source that cannot be opened).
 - **Read-only.** Nothing in this plugin writes to, commits in, or runs anything inside a sibling repo.

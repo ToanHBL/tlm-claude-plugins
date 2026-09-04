@@ -13,9 +13,13 @@
 // Usage (run from the consuming project):
 //   node ecosystem.mjs list                 # registered repos + on-disk status
 //   node ecosystem.mjs sync [name...]       # clone what's missing, fetch what's there
-//   node ecosystem.mjs index                # (re)write the cross-repo map
-//   node ecosystem.mjs add <path-or-giturl> [--name x] [--role backend] [--notes "..."]
+//   node ecosystem.mjs index                # (re)write the cross-repo map + relationships
+//   node ecosystem.mjs add <path-or-url> [--name x] [--role backend] [--notes "..."] [--ref b]
 //   node ecosystem.mjs preflight            # what it would do; no writes
+//
+// `add` accepts a clone URL, a local path, OR a pasted browse URL — a GitHub/GitLab
+// file view (…/tree/<branch>/…) or an Azure DevOps repo page (…/_git/<repo>?version=GB<branch>).
+// A browse URL is normalized to a real clone URL and the branch in it becomes `ref`.
 //
 // Config — <project>/.claude/settings.local.json → tlm.ecosystem (fallback
 // .claude/tlm.local.json → ecosystem). Shape in setup/tlm-config.reference.json:
@@ -148,6 +152,59 @@ function nameOf(r) {
   return 'repo'
 }
 
+// A user pastes what their browser shows — a GitHub/GitLab file view, an Azure DevOps
+// repo page — not a `git clone` URL. Cloning that verbatim fails (the branch and query
+// string are part of it). This turns the common browse URLs into a real clone URL plus
+// the branch encoded in them, so `add <pasted-url>` just works. An scp/ssh URL or a
+// plain https .git URL is already cloneable and passes through untouched.
+function parseRepoUrl(input) {
+  const raw = String(input || '').trim()
+  if (/^git@|^ssh:\/\//.test(raw)) return { gitUrl: raw }
+  let u
+  try {
+    u = new URL(raw)
+  } catch {
+    return { gitUrl: raw }
+  }
+  const host = u.hostname.toLowerCase()
+  const parts = u.pathname.replace(/^\/+/, '').replace(/\/+$/, '').split('/').filter(Boolean)
+
+  // GitHub / GitLab / Bitbucket / Gitea: /<org>/<repo>[/tree|blob|src|-/tree/<ref>/...]
+  if (['github.com', 'gitlab.com', 'bitbucket.org'].includes(host) || host.startsWith('git.')) {
+    if (parts.length >= 2) {
+      const org = parts[0]
+      const repo = parts[1].replace(/\.git$/, '')
+      let ref
+      const i = parts.findIndex((p) => p === 'tree' || p === 'blob' || p === 'src')
+      if (i !== -1 && parts[i + 1]) ref = decodeURIComponent(parts[i + 1])
+      return { gitUrl: `https://${host}/${org}/${repo}.git`, ref }
+    }
+  }
+
+  // Azure DevOps: https://dev.azure.com/<org>/[<project>/]_git/<repo>?version=GB<branch>
+  //           or  https://<org>.visualstudio.com/[<project>/]_git/<repo>?version=GB<branch>
+  // version prefixes: GB = branch, GT = tag, GC = commit — only a branch maps to a ref.
+  if (host === 'dev.azure.com' || host.endsWith('.visualstudio.com')) {
+    const gi = parts.indexOf('_git')
+    if (gi !== -1 && parts[gi + 1]) {
+      const legacy = host.endsWith('.visualstudio.com')
+      const org = legacy ? host.split('.')[0] : parts[0]
+      const repo = decodeURIComponent(parts[gi + 1])
+      // The segment before _git is the project; when the URL omits it Azure defaults
+      // the project to the repo name.
+      const prev = gi >= 1 ? decodeURIComponent(parts[gi - 1]) : ''
+      const project = prev && prev !== org ? prev : repo
+      const version = u.searchParams.get('version') || ''
+      const ref = /^GB/.test(version) ? decodeURIComponent(version.slice(2)) : undefined
+      const base = legacy ? `https://${host}` : `https://dev.azure.com/${org}`
+      return { gitUrl: `${base}/${project}/_git/${repo}`, ref }
+    }
+  }
+
+  // Unknown host, or an https URL that is already a clone URL — use it as given.
+  return { gitUrl: raw }
+}
+
 // --- scanning ---------------------------------------------------------------
 
 const readJsonSafe = (p) => {
@@ -158,10 +215,42 @@ const readJsonSafe = (p) => {
   }
 }
 
+// The packages a repo PUBLISHES (its own name + every workspace package name) and the
+// dependency names it consumes. Enough to detect a code-level edge — repo A depends on
+// a package repo B publishes — without walking node_modules. Bounded: root plus a
+// capped sweep of apps/* and packages/*.
+function collectPackages(dir) {
+  const pkgNames = new Set()
+  const depNames = new Set()
+  const eat = (pkg) => {
+    if (!pkg) return
+    if (pkg.name) pkgNames.add(pkg.name)
+    for (const grp of ['dependencies', 'devDependencies', 'peerDependencies']) {
+      for (const d of Object.keys(pkg[grp] || {})) depNames.add(d)
+    }
+  }
+  eat(readJsonSafe(path.join(dir, 'package.json')))
+  for (const ws of ['packages', 'apps']) {
+    const root = path.join(dir, ws)
+    if (!isDir(root)) continue
+    let entries = []
+    try {
+      entries = fs.readdirSync(root, { withFileTypes: true }).filter((e) => e.isDirectory())
+    } catch {
+      continue
+    }
+    for (const e of entries.slice(0, 30)) eat(readJsonSafe(path.join(root, e.name, 'package.json')))
+  }
+  return { pkgNames: [...pkgNames], depNames: [...depNames] }
+}
+
 // Cheap, bounded probe: enough for Claude to know what a repo IS and where its
 // contracts live, without ever walking the whole tree.
 function scanRepo(dir) {
-  const info = { stack: 'unknown', pkg: null, dirs: [], rules: [], contracts: [], branch: '', head: '' }
+  const info = { stack: 'unknown', pkg: null, dirs: [], rules: [], contracts: [], branch: '', head: '', pkgNames: [], depNames: [] }
+  const packages = collectPackages(dir)
+  info.pkgNames = packages.pkgNames
+  info.depNames = packages.depNames
   const pkg = readJsonSafe(path.join(dir, 'package.json'))
   if (pkg) {
     info.pkg = [pkg.name, pkg.version].filter(Boolean).join('@')
@@ -298,6 +387,59 @@ function cmdSync(only) {
   if (failed) process.exitCode = 1
 }
 
+// The relationship view: how the registered repos fit together. Two deterministic
+// signals — the roles the user gave them (backend / web / mobile / shared-lib …) and
+// any code-level dependency where one repo consumes a package another publishes. The
+// common cross-repo link (a mobile app or web portal calling a backend over HTTP) is
+// NOT a package dependency, so it is called out in prose rather than faked as an edge.
+function relationLines(scanned) {
+  const L = ['## How these repos relate', '']
+  L.push('Grouped by the role each repo plays, plus any dependency detected between')
+  L.push('registered repos. A link that runs over the network — an app calling a backend')
+  L.push("API — will NOT show up as a package dependency: read each repo's `notes` and")
+  L.push('`contracts to read` above for those, and open the real file before assuming a shape.')
+  L.push('')
+
+  const byRole = new Map()
+  for (const s of scanned) {
+    const role = s.r.role || 'unspecified'
+    if (!byRole.has(role)) byRole.set(role, [])
+    byRole.get(role).push(nameOf(s.r))
+  }
+  for (const [role, names] of byRole) L.push(`- **${role}**: ${names.join(', ')}`)
+  L.push('')
+
+  const present = scanned.filter((s) => s.info)
+  const owner = new Map() // published package name -> repo that publishes it
+  for (const s of present) for (const n of s.info.pkgNames) owner.set(n, nameOf(s.r))
+
+  const edges = []
+  for (const s of present) {
+    const from = nameOf(s.r)
+    const own = new Set(s.info.pkgNames)
+    const used = new Map() // target repo -> shared package names
+    for (const d of s.info.depNames) {
+      const to = owner.get(d)
+      if (to && to !== from && !own.has(d)) {
+        if (!used.has(to)) used.set(to, [])
+        used.get(to).push(d)
+      }
+    }
+    for (const [to, pkgs] of used) edges.push({ from, to, pkgs })
+  }
+
+  if (edges.length) {
+    L.push('Detected code dependencies (one repo imports a package another publishes):')
+    for (const e of edges) L.push(`- \`${e.from}\` → \`${e.to}\` — uses ${e.pkgs.map((p) => `\`${p}\``).join(', ')}`)
+  } else {
+    L.push('_No shared-package dependency detected between these repos — they integrate at')
+    L.push('runtime (HTTP / messaging), not through shared packages. The API and type contracts')
+    L.push('to read live in each backend repo above._')
+  }
+  L.push('')
+  return L
+}
+
 function cmdIndex() {
   const { eco } = loadConfig()
   if (!eco) die('no tlm.ecosystem configured — run /project-setup first')
@@ -317,19 +459,24 @@ function cmdIndex() {
   L.push('')
   if (!list.length) L.push('_No repos registered yet._')
 
-  for (const r of list) {
+  // Scan each present repo once; the per-repo sections and the relationship section
+  // below both read from this.
+  const scanned = list.map((r) => {
     const { dir, state } = statusOf(eco, r)
+    return { r, dir, state, info: state.startsWith('MISSING') ? null : scanRepo(dir) }
+  })
+
+  for (const { r, dir, state, info } of scanned) {
     L.push(`## ${nameOf(r)}${r.role ? ` — ${r.role}` : ''}`)
     L.push('')
     L.push(`- path: \`${contract(dir)}\`${state === 'present' ? '' : ` (**${state}**)`}`)
     if (r.gitUrl) L.push(`- git: \`${r.gitUrl}\`${r.ref ? ` (${r.ref})` : ''}`)
     if (r.notes) L.push(`- notes: ${r.notes}`)
-    if (state.startsWith('MISSING')) {
+    if (!info) {
       L.push('- ⚠️ not on disk — run `/project-setup` (it re-clones) before relying on anything here')
       L.push('')
       continue
     }
-    const info = scanRepo(dir)
     L.push(`- stack: ${info.stack}${info.pkg ? ` · package: \`${info.pkg}\`` : ''}`)
     if (info.branch) L.push(`- checked out: \`${info.branch}\`${info.head ? ` @ ${info.head}` : ''}`)
     if (info.dirs.length) L.push(`- top level: ${info.dirs.map((d) => `\`${d}/\``).join(' ')}`)
@@ -338,6 +485,8 @@ function cmdIndex() {
     L.push('')
   }
 
+  if (list.length > 1) for (const line of relationLines(scanned)) L.push(line)
+
   fs.mkdirSync(path.dirname(indexPath), { recursive: true })
   fs.writeFileSync(indexPath, L.join('\n').replace(/\n+$/, '') + '\n')
   out(`wrote ${path.relative(PROJ, indexPath)} (${list.length} repo${list.length === 1 ? '' : 's'})`)
@@ -345,24 +494,29 @@ function cmdIndex() {
 
 function cmdAdd(args) {
   const target = args[0]
-  if (!target) die('usage: ecosystem.mjs add <path-or-giturl> [--name x] [--role backend] [--notes "..."] [--ref develop]')
+  if (!target) die('usage: ecosystem.mjs add <path | clone-url | browse-url> [--name x] [--role backend] [--notes "..."] [--ref develop]')
   const flag = (n) => {
     const i = args.indexOf(`--${n}`)
     return i === -1 ? undefined : args[i + 1]
   }
   const looksGit = /^(https?:\/\/|git@|ssh:\/\/)/.test(target) || target.endsWith('.git')
+  // Normalize a pasted browse URL to a real clone URL + the branch it carries, before
+  // anything else reads the name off it (a /tree/develop URL would otherwise be named
+  // "develop").
+  const parsed = looksGit ? parseRepoUrl(target) : null
 
   const state = loadConfig()
   const eco = state.eco || { enabled: true, workspaceRoot: DEFAULT_WORKSPACE, indexFile: DEFAULT_INDEX, repos: [] }
   eco.enabled = true
   eco.repos = repos(eco)
 
-  const entry = { name: flag('name') || nameOf(looksGit ? { gitUrl: target } : { path: target }) }
+  const entry = { name: flag('name') || nameOf(looksGit ? { gitUrl: parsed.gitUrl } : { path: target }) }
   if (flag('role')) entry.role = flag('role')
   if (looksGit) {
-    entry.gitUrl = target
+    entry.gitUrl = parsed.gitUrl
     entry.path = contract(path.join(expand(eco.workspaceRoot || DEFAULT_WORKSPACE), entry.name))
-    if (flag('ref')) entry.ref = flag('ref')
+    const ref = flag('ref') || parsed.ref
+    if (ref) entry.ref = ref
   } else {
     const abs = expand(target)
     if (!isDir(abs)) die(`not a directory: ${abs}`)

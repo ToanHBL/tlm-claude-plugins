@@ -417,7 +417,7 @@ function humanActions(cfg) {
     if (sys === 'clickup') a.push('ClickUp connector — claude.ai → Settings → Connectors → ClickUp → Connect, then /mcp here')
     else if (sys === 'jira') a.push('Atlassian/Jira MCP + JIRA_API_TOKEN — id.atlassian.com → Security → API tokens')
     else if (sys === 'linear') a.push('Linear MCP — claude mcp add --transport sse linear https://mcp.linear.app/sse')
-    else if (sys === 'github') a.push('GitHub CLI — gh auth login')
+    else if (sys === 'github') a.push('GitHub — claude.ai → Settings → Connectors → GitHub → Connect (then /mcp here), or fall back to gh auth login')
     else if (sys === 'azure-devops') a.push('Azure CLI — az login')
   }
   if (tlm.chat?.enabled === true) a.push('Slack connector — claude.ai → Settings → Connectors → Slack → Connect, then /mcp here')

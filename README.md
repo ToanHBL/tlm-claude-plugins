@@ -177,9 +177,11 @@ facts.
 
 **The context7 and Framelink Figma MCP servers ship with the plugin** (bundled `mcpServers`), so they
 load automatically on install — no per-project `mcpServers` entry needed. You only supply the Figma
-**token** (`env.FIGMA_ACCESS_TOKEN`) and connect the OAuth connectors that can't be bundled (ClickUp /
-Slack, at claude.ai → Connectors). Full walkthrough and troubleshooting:
-[`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
+**token** (`env.FIGMA_ACCESS_TOKEN`), optionally a context7 API key (`env.CONTEXT7_API_KEY` — context7
+runs fine without one; a key only raises rate limits), and connect the OAuth connectors that can't be
+bundled (ClickUp / GitHub / Slack, at claude.ai → Connectors). Both bundled servers read their key from
+your local `env` via a `${…:-}` reference, so the secret stays in your gitignored settings, never in the
+plugin. Full walkthrough and troubleshooting: [`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
 
 #### Onboarding a teammate: hand the answers over, don't ask for them again
 

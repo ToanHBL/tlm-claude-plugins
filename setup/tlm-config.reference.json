@@ -92,14 +92,16 @@
       "required": "always",
       "purpose": "Fetch current library/framework/SDK documentation instead of relying on training data.",
       "usedBy": ["all skills", "the global context7 rule"],
-      "secret": false,
+      "secret": "optional",
+      "secretKey": "CONTEXT7_API_KEY",
       "detectBy": "tool name matches mcp__context7__* (resolve-library-id, query-docs)",
+      "howToGetSecret": "Optional — context7 works without a key. A key raises rate limits and unlocks private/higher-tier docs. Get one at https://context7.com/dashboard (looks like ctx7sk-...). Store it in the INSTALLING USER's local settings.local.json env as CONTEXT7_API_KEY — it is per-user, never committed, never baked into plugin.json.",
       "bundled": true,
       "install": {
-        "note": "BUNDLED with the plugin (mcpServers in .claude-plugin/plugin.json) — loads automatically on install; do NOT add it to a project's settings.local.json. Requires Node for npx.",
+        "note": "BUNDLED with the plugin (mcpServers in .claude-plugin/plugin.json) — loads automatically on install; do NOT add it to a project's settings.local.json. Requires Node for npx. The bundled server reads the OPTIONAL CONTEXT7_API_KEY from the project's env via `--api-key=${CONTEXT7_API_KEY:-}` (same env-reference pattern as the Figma token; empty when unset → the server starts keyless). The only per-project step is putting the key in env, and only if you have one.",
         "settingsSnippet": {
           "command": "npx",
-          "args": ["-y", "@upstash/context7-mcp@latest"]
+          "args": ["-y", "@upstash/context7-mcp@latest", "--api-key=${CONTEXT7_API_KEY:-}"]
         }
       }
     },
@@ -160,11 +162,16 @@
 
     "github": {
       "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'github'",
-      "purpose": "GitHub Issues as the ticket system. No MCP needed — uses the gh CLI.",
+      "purpose": "GitHub Issues/PRs as the ticket system. Two ways to connect it — either works.",
       "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
       "secret": false,
-      "detectBy": "shell: gh auth status",
-      "install": { "command": "gh auth login" }
+      "detectBy": "tool name matches mcp__*[Gg]it[Hh]ub* (the Claude GitHub connector), OR shell: gh auth status (the gh CLI)",
+      "install": {
+        "method": "connector-or-cli",
+        "connector": "claude.ai → Settings → Connectors → GitHub → Connect (OAuth). Then /mcp in Claude Code to confirm it is listed. PREFERRED — no local CLI to install or keep authed.",
+        "cli": "gh auth login (fallback when the connector is unavailable; the release/deployment skills also read commit ranges with git regardless).",
+        "note": "OAuth via the connector stores no token in settings.local.json. Only the non-secret repo/workspace identifiers live in tlm."
+      }
     },
 
     "slack": {

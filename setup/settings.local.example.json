@@ -28,7 +28,9 @@
 
   "env": {
     "//": "SECRETS. Never commit. Never echo back to the user.",
-    "FIGMA_ACCESS_TOKEN": "figd_REPLACE_ME"
+    "FIGMA_ACCESS_TOKEN": "figd_REPLACE_ME",
+    "//CONTEXT7_API_KEY": "OPTIONAL — context7 works without it. A key raises rate limits. Get one at https://context7.com/dashboard (ctx7sk-...). The bundled context7 server reads it via --api-key=${CONTEXT7_API_KEY:-}. Delete this line if you have no key.",
+    "CONTEXT7_API_KEY": "ctx7sk_REPLACE_ME_OR_DELETE"
   },
 
   "tlm": {
