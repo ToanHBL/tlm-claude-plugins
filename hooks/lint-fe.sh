@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# DEPRECATED — superseded by lint-fe.mjs, which hooks.json now calls. Kept for one release
+# so the port can be diffed against it; removed in v2.5.0. Do not edit: fix lint-fe.mjs instead.
+#
 # PostToolUse hook — lints the file Claude just edited against the fe-coding
 # HARD RULES that are mechanically detectable, and feeds any hits back so Claude
 # self-corrects in the same turn.

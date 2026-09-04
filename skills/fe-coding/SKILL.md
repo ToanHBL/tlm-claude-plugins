@@ -1,12 +1,17 @@
 ---
 name: fe-coding
-description: House conventions for ALL frontend work — Next.js (App Router or Page Router), React Native (Expo Router or CLI), and Next.js API route handlers with Prisma. Detects the project's stack, applies the shared _modules architecture, component hierarchy, Link-only navigation, function minimalism, Tailwind/StyleSheet styling, TypeScript and Zod/React-Hook-Form rules, then layers the stack-specific hard rules on top. Use whenever creating or editing a component, screen, page, layout, hook, API client, route handler, form, or navigation in any frontend project — including in app/, pages/, _layout.tsx, route.ts, 'use server' actions, expo-router imports, or useQuery hooks.
+description: House conventions for ALL frontend work — Next.js (App Router or Page Router), React Native (Expo Router or CLI), and Next.js API route handlers with Prisma. Detects the project's stack, applies the shared _modules architecture, component hierarchy, Link-only navigation, function minimalism, Tailwind/StyleSheet styling, TypeScript and Zod/React-Hook-Form rules, then layers the stack-specific hard rules on top. Reads .claude/ecosystem-map.md before assuming any contract that lives in another repo of the system (backend API, shared package, web/mobile twin) instead of guessing it. Use whenever creating or editing a component, screen, page, layout, hook, API client, route handler, form, or navigation in any frontend project — including in app/, pages/, _layout.tsx, route.ts, 'use server' actions, expo-router imports, or useQuery hooks.
 ---
 
 # Frontend Coding
 
 One entry point for every frontend stack. **Detect the stack, apply the shared base, then the
-stack-specific hard rules.** Deep reference ships with this plugin under `ai/` and is read on demand.
+stack-specific hard rules.** Deep reference lives under `ai/` and is read on demand.
+
+**Rules root** — where `ai/` is read from: `<project>/.claude/tlm-plugin/` if that directory exists,
+else `${CLAUDE_PLUGIN_ROOT}`. The first is this project's own copy of the rules (installed by
+`/project-setup`, committed, **live**); the second is the installed plugin. When they differ, the
+project's copy wins — that is how a team keeps a rule this repo needs before it has shipped upstream.
 
 ---
 
@@ -77,7 +82,8 @@ live, which `Base*` primitives already exist, and the `apiClient[Domain]` naming
 **once**, then be written down so later sessions read it instead of re-scanning the tree every time.
 
 On the **first** substantive task in a repo, after that scan, persist a short map to
-`.claude/codebase-map.md` (committed, not a secret — the whole team benefits):
+`.claude/codebase-map.md` (committed, not a secret — the whole team benefits). It is the *inside* of this
+repo; `.claude/ecosystem-map.md` (STEP 1.5) is everything outside it:
 
 ```md
 <!-- tlm:codebase-map v1 — regenerate if the repo structure drifts -->
@@ -99,6 +105,43 @@ documented project convention; surface the conflict and, if it should stick, rou
 On **later** sessions, read `.claude/codebase-map.md` first and skip the directory scan. Re-scan only
 when it looks stale — a `Base*` primitive you expect is absent, the detected stack disagrees with the
 map, or the modules root moved (a router migration). Keep it terse; it's a lookup, not documentation.
+
+---
+
+## STEP 1.5 — Cross-repo context (when the work touches another repo of the system)
+
+Most repos here are one piece of a larger system: the screen you are writing calls an API owned by
+another repo, the type comes from a shared package, the flow already exists on the web twin.
+
+**Never invent a contract that lives in another repo.** An endpoint shape, a payload field, an enum, a
+status vocabulary, an error code — guessed, these look right, pass review, and fail at runtime. Read the
+real file instead.
+
+**When the task mentions another system, service, app or shared package:**
+
+1. **Read `.claude/ecosystem-map.md` first** (written by `/project-setup`). It lists each registered
+   repo: where it is on disk, its stack, where its contracts live, and which of its own rule files
+   govern it.
+2. **Open the actual file** in that repo — the DTO, the schema, the route handler, the exported type.
+   The map says where to look; it is not itself the contract.
+3. **Those repos are READ-ONLY reference.** Never edit, commit, stage or run anything inside them. If
+   the work genuinely requires a change over there, say so and let the user open that repo — a
+   cross-repo change is their call and a separate PR.
+4. **A sibling repo's own rules win inside it.** If you quote or adapt code from it, follow *this*
+   project's conventions in the code you write here.
+
+**When the repo you need is not registered**, say so and offer to add it — don't guess and don't
+silently proceed:
+
+```bash
+RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
+node "$RULES/skills/project-setup/ecosystem.mjs" list                       # what is registered
+node "$RULES/skills/project-setup/ecosystem.mjs" add <path-or-giturl> --role backend
+node "$RULES/skills/project-setup/ecosystem.mjs" sync && node "$RULES/skills/project-setup/ecosystem.mjs" index
+```
+
+If a registered repo is missing from disk, `sync` re-clones it. If it still cannot be read, **ask the
+user for the contract** — a stated assumption is recoverable, a fabricated endpoint is not.
 
 ---
 
@@ -358,6 +401,9 @@ convention. Screens still live in `_modules/pages/[Domain]/*Screen.tsx`.
 Run the checklist in `ai/shared-fe/07-ai-workflow-integration.md` §9: right folder, `Col`/`Row`/`TextPrimary`
 not raw HTML, `Link` not onClick, function minimalism, typed (no `as any`), i18n strings, loading via
 props, empty states visible, API types mirroring the backend.
+
+Plus: **every cross-repo contract you used came from a file you actually opened**, not from a shape that
+looked right (STEP 1.5). If you had to assume one, say so explicitly in your summary.
 
 If the user corrects your output — "do it this way instead, because…" — that feedback may be a rule
 worth keeping. See the `rule-capture` skill.

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# DEPRECATED — superseded by plugin-pr.mjs, which hooks.json now calls. Kept for one release
+# so the port can be diffed against it; removed in v2.5.0. Do not edit: fix plugin-pr.mjs instead.
+#
 # plugin-pr.sh — open a PR that ships a PLUGIN-scope rule change back to the
 # tlm-claude-plugins upstream, WITHOUT touching the read-only managed clone at
 # ${CLAUDE_PLUGIN_ROOT} (which /plugin marketplace update overwrites).

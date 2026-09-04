@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# DEPRECATED — superseded by vendor-watch.mjs, which hooks.json now calls. Kept for one release
+# so the port can be diffed against it; removed in v2.5.0. Do not edit: fix vendor-watch.mjs instead.
+#
 # PostToolUse hook — fires when Claude edits the VENDORED copy of the plugin
 # (tlm.pluginRepo.vendorDir, default .claude/tlm-plugin/) inside a consuming
 # project, and reminds Claude to offer a contribute-back PR.

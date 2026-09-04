@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# DEPRECATED — superseded by setup-check.mjs, which hooks.json now calls. Kept for one release
+# so the port can be diffed against it; removed in v2.5.0. Do not edit: fix setup-check.mjs instead.
+#
 # SessionStart hook for the project-setup skill.
 #
 # Reports the state of this project's workflow-skill config so Claude can tell the

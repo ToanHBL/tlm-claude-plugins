@@ -4,6 +4,9 @@
     "This file is GITIGNORED in a real project because it holds secrets.",
     "Run /project-setup instead of editing this by hand — it asks only the questions your",
     "project actually needs, verifies each MCP with a real call, and writes this file for you.",
+    "ONBOARDING A TEAMMATE? Don't send them this file. Send an INIT DOC (./tlm-init.template.json,",
+    "or generate one with `init.mjs template --from-current`): it is the same shape minus your",
+    "secrets and per-machine paths, and /project-setup applies it instead of asking the questions.",
     "Every key is documented in ./tlm-config.reference.json.",
     "",
     "context7 + framelink-figma MCP servers ship WITH the plugin (bundled in plugin.json) — do NOT",
@@ -29,7 +32,7 @@
   },
 
   "tlm": {
-    "version": 1,
+    "version": 2,
 
     "project": {
       "name": "REPLACE_ME",
@@ -76,19 +79,53 @@
 
     "docs": { "mcp": "context7" },
 
+    "//ecosystem": [
+      "THE OTHER REPOS OF THIS SYSTEM — the ones Claude may READ while working here: the backend an app",
+      "calls, a shared package, the web twin of a mobile flow. They are read-only reference; Claude opens",
+      "files in them and never edits or commits there. Listed PER PROJECT, so an unrelated repo never gets",
+      "pulled into context. A repo given as a git URL is cloned into workspaceRoot; one given as a folder",
+      "path stays where it is. /project-setup manages this via skills/project-setup/ecosystem.mjs",
+      "(add <path-or-giturl> | sync | index) and writes the map at indexFile.",
+      "Leave enabled:false for a standalone repo."
+    ],
+    "ecosystem": {
+      "enabled": true,
+      "workspaceRoot": "~/tlm-ecosystem",
+      "indexFile": ".claude/ecosystem-map.md",
+      "repos": [
+        {
+          "name": "tlm-api",
+          "role": "backend",
+          "path": "~/tlm-ecosystem/tlm-api",
+          "gitUrl": "git@github.com:acme/tlm-api.git",
+          "ref": "develop",
+          "notes": "REST API this app calls; endpoint shapes live in src/modules/**/dto"
+        },
+        {
+          "name": "tlm-web",
+          "role": "web",
+          "path": "~/Projects/tlm-web",
+          "notes": "web twin of these screens — reuse its Zod schemas and status vocabulary"
+        }
+      ]
+    },
+
     "//pluginRepo": [
-      "OPTIONAL. Enable only for a team member who maintains the house rules and wants to change them",
-      "from this project and open PRs back to the plugin. /project-setup vendors the plugin into",
-      ".claude/tlm-plugin/ and rule-capture opens PRs via skills/rule-capture/plugin-pr.sh. Leave",
-      "enabled:false (or omit) in a plain consuming project. See tlm-config.reference.json → tlm.pluginRepo."
+      "THIS PROJECT'S LIVE RULES COPY. /project-setup installs the plugin's skills/ ai/ hooks/ setup/ into",
+      ".claude/tlm-plugin/ (committed) and the skills read THAT copy first — so a rule changed here takes",
+      "effect immediately in this repo. The installed plugin under ${CLAUDE_PLUGIN_ROOT} stays the delivery",
+      "channel and the fallback; it is never edited in place (a marketplace update overwrites it).",
+      "Sharing a rule with the team is a PR: rule-capture runs skills/rule-capture/plugin-pr.mjs diff (the",
+      "review step) and then open <slug>. Set enabled:false only for a repo that must run purely on the",
+      "installed plugin. See tlm-config.reference.json → tlm.pluginRepo."
     ],
     "pluginRepo": {
-      "enabled": false,
+      "enabled": true,
       "upstreamRemote": "git@github.com-hbl:ToanHBL/tlm-claude-plugins.git",
       "ownerRepo": "ToanHBL/tlm-claude-plugins",
       "baseBranch": "develop",
       "vendorDir": ".claude/tlm-plugin",
-      "prMode": "compare-url",
+      "prMode": "gh",
       "bump": "patch"
     }
   }
