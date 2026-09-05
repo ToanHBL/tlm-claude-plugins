@@ -562,53 +562,53 @@ export default function ProductForm({
 ### Pagination
 
 ```typescript
-// API Client with pagination
+// API Client with pagination.
+// Params are the backend's own — limit/offset, not a `page` number this layer
+// would then have to convert. See ai/shared-fe/09-data-listing.md §2-3.
 export const useQueryList = (params?: {
-  page?: number;
   limit?: number;
+  offset?: number;
 }) => {
   return useQuery({
     queryKey: ['product-list', params],
     queryFn: () =>
-      UtilsApi.get<{ products: Product[]; total: number; hasMore: boolean }>(
-        API_ENDPOINTS.LIST,
-        { params }
-      ),
-    keepPreviousData: true, // Keep old data while fetching new page
+      UtilsApi.get<{ products: Product[]; total: number }>(API_ENDPOINTS.LIST, { params }),
+    // v5 spelling. `keepPreviousData: true` is v4 and no longer valid — without
+    // this the list blanks to skeletons on every page change.
+    placeholderData: keepPreviousData,
   });
 };
 ```
 
 ```tsx
-// Screen with pagination
+// Screen with pagination.
+// limit/offset live in the URL (router.query), so the view is shareable and
+// Back returns to the page the user was on.
 export default function ProductListScreen() {
-  const [page, setPage] = useState(1);
-  const { data, isLoading } = apiClientProduct.useQueryList({ page, limit: 20 });
+  const { t } = useTranslation(['product', 'common']);
+  const router = useRouter();
+
+  const limit = Number(router.query.limit ?? 25);
+  const offset = Number(router.query.offset ?? 0);
+
+  const { data, isLoading } = apiClientProduct.useQueryList({ limit, offset });
 
   return (
-    <>
-      <div className="grid grid-cols-3 gap-4">
-        {data?.products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+    <Col className='gap-4'>
+      <BaseTable columns={COLUMNS} rows={data?.products ?? []} isLoading={isLoading} />
 
-      <Row className="justify-center gap-2 mt-4">
-        <BaseButton
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Previous
-        </BaseButton>
-        <span>Page {page}</span>
-        <BaseButton
-          onClick={() => setPage((p) => p + 1)}
-          disabled={!data?.hasMore}
-        >
-          Next
-        </BaseButton>
+      {/* Paging is navigation → Link, per house rule 3 */}
+      <Row className='justify-center gap-2'>
+        <Link href={{ query: { limit, offset: Math.max(0, offset - limit) } }} className='no-underline'>
+          <BaseButton as='span' disabled={offset === 0}>{t('common:previous')}</BaseButton>
+        </Link>
+        <Link href={{ query: { limit, offset: offset + limit } }} className='no-underline'>
+          <BaseButton as='span' disabled={offset + limit >= (data?.total ?? 0)}>
+            {t('common:next')}
+          </BaseButton>
+        </Link>
       </Row>
-    </>
+    </Col>
   );
 }
 ```

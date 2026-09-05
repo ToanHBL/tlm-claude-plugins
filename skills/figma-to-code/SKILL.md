@@ -36,7 +36,8 @@ Report precisely which failure it was and what unblocks it:
 | No Figma MCP tools found | Not configured — run `/project-setup figma`, or add the server manually (checklist Step 2) |
 | Tools exist, fetch returns 403 | Token invalid, expired, or lacking *File content* scope — regenerate at Figma → avatar → Settings → Security → Personal access tokens |
 | Fetch returns 404 | The file or frame isn't accessible to this token's account — check the link and team access |
-| Fetch errors otherwise | Report the actual error; don't retry silently more than once |
+| Fetch returns **429**, or the error says rate limit / quota / too many requests | **Not a stop condition.** Retry per PHASE 0.5 and keep going until the design is in hand |
+| Fetch errors otherwise (5xx, timeout, socket) | Retry per PHASE 0.5, max 3; then report the actual error |
 
 **Do not improvise the design.** No scaffolding "something close" from the frame name, the URL, a
 screenshot, or a verbal description. A screen built from a guess *looks* finished, so nobody re-checks
@@ -50,6 +51,61 @@ which part you did and which part is blocked.
 
 Setup detail and token-handling rules: `${CLAUDE_PLUGIN_ROOT}/setup/SETUP-CHECKLIST.md` → Step 2.
 **Never inline a `figd_` token into a committed file, and never echo it back.**
+
+---
+
+## PHASE 0.5 — A rate limit is a wait, not a wall
+
+The design is the single source of truth, and STEP 0 forbids improvising UI. So when the *only* thing
+between you and the design is a quota timer, **wait it out**. Stopping at the first 429 and reporting
+"the MCP failed" is a false negative: nothing is broken.
+
+**Classify first. Retry only what is retryable.**
+
+| Error | Action |
+|---|---|
+| 429, quota / rate-limit wording, 408, 5xx, socket timeout | **Retry** — the ladder below |
+| 401 / 403 (bad or expired token), 404 (no access to the file) | **Terminal.** Stop and report, per the PHASE 0 table |
+
+**The ladder.**
+
+1. **Honor `Retry-After` when present** — it wins over any computed delay. Figma sends it on 429, as
+   delay-seconds or an HTTP date.
+2. **Otherwise full jitter**: `sleep = random(0, min(30s, 1s × 2^attempt))`. Jitter is not decoration —
+   AWS's *Exponential Backoff And Jitter* found plain exponential backoff leaves clients retrying in
+   sync; full jitter spreads them and did the least total work.
+3. **Cap at 8 attempts per node**, then move to the next node and come back at the end.
+4. **Throttle proactively.** Figma's Tier 1 endpoints — Files and Images, exactly what this MCP hits —
+   allow roughly 10/min on Starter to 20/min on Enterprise. Pace fetches at about **one every 6
+   seconds**. Most 429s are self-inflicted by a burst.
+5. **Announce the wait once** — "rate limited, backing off, N of M nodes cached" — not once per
+   attempt. Silence for four minutes reads as a hang.
+
+**Chunk by node id, not by depth.** Fetch the frame, read its child node ids, then fetch **one node per
+call**. A single whole-file `get_figma_data` is both the most likely call to trip the quota and the
+most expensive one to lose. The tool's own schema says of `depth`: *"OPTIONAL. Do NOT use unless
+explicitly requested by the user."* So `nodeId` is the scoping lever; reach for `depth` only as a
+deliberate escape hatch when one node is still too large, and say that you did.
+
+**Cache every success to the scratchpad before the next call.** A retry must never refetch a node
+already in hand — that is what burns the quota that caused the retry.
+
+```
+<scratchpad>/figma/<fileKey>/<nodeId>.yaml     # one file per fetched node
+<scratchpad>/figma/<fileKey>/_index.json       # { nodeId: "done" | "pending" | "failed:<code>" }
+```
+
+Read the index first and skip anything `done`. The cache is session-local working state: never commit
+it, and it must never contain a `figd_` token.
+
+**When it is legitimate to stop.** Report and stop only when:
+
+- the error is **terminal** (401 / 403 / 404) — a quota wait will never fix a permissions problem; or
+- **every node has failed 8 times**, more than ~10 minutes of wall clock has passed, and **no new node
+  was cached** in the last two attempts. No progress plus no time left is a real stop.
+
+Then say exactly which nodes you *did* cache, and build **only** the parts backed by them. A partially
+fetched design is a partial build — never a whole build with the gaps improvised.
 
 ---
 

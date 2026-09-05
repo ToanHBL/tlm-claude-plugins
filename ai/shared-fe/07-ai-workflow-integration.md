@@ -507,6 +507,86 @@ When working in this project, keep in mind:
 - [ ] Responsive + accessible (ARIA) markup — semantic elements and ARIA/HTML attributes live inside `Base*` primitives (e.g. `BaseTable`, `BaseForm`), never as raw markup in screens
 - [ ] Uses established utility functions (`UtilsForm`, `joinTextNoSpace`, etc.)
 - [ ] Strings wrapped in `t()` for i18n
+- [ ] **Every pressable element has its affordances** — see §9a. Tailwind v4 does NOT give a
+      `<button>` a pointer cursor; you have to ask for it
+- [ ] **No destructuring inside a function body** — see §9b. Props are the exception and stay
+      destructured
+- [ ] **Every mock value is labelled `mock` on screen and `MOCK:` in the code** — see §9c
+
+### 9a. Pressable affordances (run this pass AFTER the component works)
+
+An element that responds to a click has to *look* like it does, and this is the pass that is always
+skipped because the feature already works without it. Run it on every interactive element you added.
+
+- [ ] **`cursor-pointer`.** Tailwind v4's Preflight sets `cursor: default` on `<button>` — the v3
+      default was `pointer`. Upgrading silently removed the affordance from every button in the app,
+      so **every** pressable element must now opt back in. Put it on the `Base*` primitive once so
+      callers inherit it, not on each call site.
+- [ ] **A visible `:hover` change** — colour, background or border. Not opacity alone.
+- [ ] **A visible `:focus-visible` ring**, and never `outline-none` without a replacement. Keyboard
+      users have no cursor to tell them where they are.
+- [ ] **`disabled:cursor-not-allowed`** plus a disabled style that reads as disabled, not as faint.
+- [ ] **Hit target at least 24×24 CSS px** (WCAG 2.2 §2.5.8 Target Size (Minimum), AA). A 16px `×`
+      on a tag fails this; pad it. 44×44 is the Enhanced (AAA) target — use it for anything reached
+      on a phone.
+- [ ] **A real `<button>` or `<a>`**, never a clickable `<div>`. A div is not focusable, does not fire
+      on Enter/Space, and is invisible to a screen reader.
+
+### 9b. No destructuring inside a function body
+
+Destructure **props** — that is the component's signature and it stays as it is. Inside the body,
+read through the object instead.
+
+```tsx
+// ✅ Props destructured — the signature IS the contract
+export default function VehicleDetailScreen({ vehicleId }: { vehicleId: number }) {
+  const query = useQueryVehiclePage(vehicleId);
+
+  // ✅ Read through the object. Where the value came from stays on screen.
+  return <VehicleHeroBand device={query.data.detail.device} />;
+}
+```
+
+```tsx
+// ❌ A shadow set of bare names, detached from where they came from
+const { detail, installRecord, lastPosition, connectedTo } = data;
+// …200 lines later, `detail` could be anything, and renaming a backend field
+// no longer shows you every place that reads it.
+```
+
+**Why.** A bare local name loses its provenance. `detail` does not say it came from the page payload,
+so a reader has to scroll back to the destructuring line to find out, and a rename in the API no
+longer surfaces at the call sites — which is exactly the drift §7b exists to prevent. Reading through
+the object keeps the path visible and makes every consumer greppable by field name.
+
+**The one carve-out: a hook's own return.** `const { t } = useTranslation()` and
+`const { register, handleSubmit } = useForm()` stay — those names are the hook's published API, not
+fields of a record, and every one of those libraries documents them that way. Everything else in a
+body — API payloads, records, nested state — is read through.
+
+Framework-mandated shapes are not exceptions to invent: `const { vehicleId } = await params` in a
+Next.js route handler is the documented signature and stays.
+
+### 9c. Mock data is labelled, on screen and in the code
+
+When a screen is built against a mock because the endpoint does not exist yet, **say so where it
+shows**. A reviewer must never mistake a placeholder for live data, and whoever wires the real API
+must be able to find every site by grep — not by reading the whole screen.
+
+- **On screen:** a `mock` marker next to the value or the section it fills. Small, dashed-border,
+  warning colour, and shaped so it cannot be read as a value itself. A screenshot has to give it away.
+- **In the code:** a `MOCK:` comment at every site, saying *which* endpoint is missing. One token,
+  greppable, no synonyms.
+- **One switch, one place.** The mock/live decision is a single flag read in the service layer — never
+  a branch inside a component. Swapping in the endpoint is then a service change, and the components
+  never knew.
+- **The mock is typed to the real backend record.** A mock with an invented shape hard-codes the wrong
+  contract into every component that reads it.
+- **Remove the marker in the same commit that wires the endpoint.** A stale `mock` badge on real data
+  misleads exactly as much as no badge on fake data.
+
+Whole-screen mock gets a banner as well; per-value mock gets the inline marker. Both, when a mostly
+live screen has two fake fields — the banner alone does not say *which* two.
 
 ### 10. Documentation Standards
 
