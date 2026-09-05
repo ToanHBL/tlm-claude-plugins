@@ -562,48 +562,53 @@ export default function ProductListPager({
 
 ### React Query Pagination
 
+Paging, sorting and filtering live in `ai/shared-fe/09-data-listing.md` — read it before building a
+listing. The short version, and the v5 spelling:
+
 ```tsx
 'use client';
 
-import { useState } from 'react';
+import { keepPreviousData } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
+
 import * as apiClientProduct from '@/_modules/_api/apiClientProduct';
 
-export default function ProductListScreen() {
-  const [page, setPage] = useState(1);
+const DEFAULT_LIMIT = 25;
 
-  const { data, isLoading, isPreviousData } = apiClientProduct.useQueryList({
-    page,
-    limit: 20,
-  }, {
-    keepPreviousData: true,  // Show old data while fetching new
-  });
+export default function ProductListScreen() {
+  const { t } = useTranslation(['product']);
+  const searchParams = useSearchParams();
+
+  // limit/offset come from the URL, verbatim as the backend takes them — not
+  // useState, and never a `page` number derived into an offset somewhere else.
+  const limit = Number(searchParams.get('limit') ?? DEFAULT_LIMIT);
+  const offset = Number(searchParams.get('offset') ?? 0);
+
+  const { data, isPending } = apiClientProduct.useQueryList(
+    { limit, offset },
+    // v5 spelling. `keepPreviousData: true` is v4 and no longer valid — without
+    // this the list blanks to skeletons on every page change.
+    { placeholderData: keepPreviousData },
+  );
 
   return (
-    <>
-      <div className="grid grid-cols-3 gap-4">
-        {data?.products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+    <Col className='gap-4'>
+      <BaseTable columns={COLUMNS} rows={data?.products ?? []} isLoading={isPending} />
 
-      <div className="flex gap-2 mt-4">
-        <BaseButton
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
-          Previous
-        </BaseButton>
-
-        <span>Page {page}</span>
-
-        <BaseButton
-          onClick={() => setPage((p) => p + 1)}
-          disabled={isPreviousData || !data?.hasMore}
-        >
-          Next
-        </BaseButton>
-      </div>
-    </>
+      {/* Paging is navigation → Link, per house rule 3 */}
+      <Row className='gap-2'>
+        <Link href={`?limit=${limit}&offset=${Math.max(0, offset - limit)}`} className='no-underline'>
+          <BaseButton as='span' disabled={offset === 0}>{t('common:previous')}</BaseButton>
+        </Link>
+        <Link href={`?limit=${limit}&offset=${offset + limit}`} className='no-underline'>
+          <BaseButton as='span' disabled={offset + limit >= (data?.total ?? 0)}>
+            {t('common:next')}
+          </BaseButton>
+        </Link>
+      </Row>
+    </Col>
   );
 }
 ```

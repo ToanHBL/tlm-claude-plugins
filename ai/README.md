@@ -15,7 +15,9 @@ ai/
 │   ├── 05-validation-patterns.md
 │   ├── 06-development-setup.md
 │   ├── 07-ai-workflow-integration.md   # AI/contributor operating manual
-│   └── 08-cross-platform-architecture.md # Web ↔ React Native mapping
+│   ├── 08-cross-platform-architecture.md # Web ↔ React Native mapping
+│   ├── 09-data-listing.md       # Tables, sort, filter, limit/offset paging, four states
+│   └── 10-images-and-preview.md # Thumbnail → preview modal, no layout shift, visible failures
 ├── templates/                   # Requirement-intake templates
 │   ├── input-processing-template.md
 │   └── requirement-summary-template.md
@@ -299,6 +301,8 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 - **How do I validate forms?** → shared-fe/05-validation-patterns.md
 - **How do I navigate?** → [router]/02-routing-structure.md
 - **How should an AI/new contributor generate code here?** → shared-fe/07-ai-workflow-integration.md
+- **How do I build a list with sort/filter/paging?** → shared-fe/09-data-listing.md
+- **How do I render an image, or a photo preview?** → shared-fe/10-images-and-preview.md
 - **How do I turn a user story / API spec into tasks?** → templates/input-processing-template.md
 - **How do I normalize cURL/JSON into a spec?** → templates/requirement-summary-template.md
 
@@ -326,6 +330,21 @@ For questions or clarifications:
 ---
 
 ## 🔄 Version History
+
+- **v1.5** (2026-09): Rules for frontend work with no design input
+  - New `shared-fe/09-data-listing.md` — a listing is a `BaseTable`; the server sorts, filters and
+    pages; `limit`/`offset` live in the URL verbatim; filters commit on Apply; four states, with
+    filtered-empty as its own
+  - New `shared-fe/10-images-and-preview.md` — a thumbnail opens a full-size preview; `BaseModal`
+    owns the APG dialog contract once; images reserve their box and fail visibly
+  - `figma-to-code` PHASE 0.5 — a Figma 429 is a wait, not a wall: honour `Retry-After`, full-jitter
+    backoff, chunk by node id, cache to the scratchpad, and a bounded stop condition
+  - Corrected two pagination examples that were still TanStack Query v4 (`keepPreviousData: true`
+    → `placeholderData: keepPreviousData`) and used local state, raw grids and untranslated labels
+  - `shared-fe/07-ai-workflow-integration.md` §9a/§9b/§9c — three passes to run AFTER the code works:
+    pressable affordances (Tailwind v4 stopped giving `<button>` a pointer cursor; plus hover, focus
+    ring, disabled cursor and a 24px hit target), no destructuring inside a function body (props and
+    a hook's own return excepted), and mock data labelled `mock` on screen and `MOCK:` in the code
 
 - **v1.0** (2024-01): Initial finalized knowledge base
   - Merged ai/ and docs/ folder rules

@@ -40,6 +40,10 @@ If the request contains a **figma.com link**, this is a design-implementation ta
    this gate; it is not a workaround for a missing design. Say plainly in your summary that you
    did this and why.
 
+   A **429 / quota** error is none of these faults. It is a wait, not a failure: back off and loop per
+   `figma-to-code` PHASE 0.5, chunking by node id and caching each success. Never report a rate limit
+   as a broken MCP.
+
 3. **If a check above genuinely fails — STOP. Do not write UI code.**
 
    Report exactly what failed (not configured / token invalid or expired / file not accessible /
@@ -253,6 +257,10 @@ Screen    → HomeIndexScreen, ProductListScreen   (page-level; in pages/[Domain
 **Why:** native browser behavior — Ctrl/middle-click, prefetch, a11y. `router.push`/`replace` are for
 post-action redirects only. React Native uses `router.navigate` — see the RN block in STEP 3.
 
+**On a listing, paging and sorting are destinations and stay `<Link>`** — a user must be able to
+middle-click page 3. Only a filter *control* commits through `router.replace(…, { scroll: false })`,
+and only on Apply. See `ai/shared-fe/09-data-listing.md` §3–4.
+
 ### 4. Function minimalism (YAGNI)
 
 Do not pre-create named handler functions or `useCallback`. Use inline anonymous functions with a
@@ -264,6 +272,12 @@ Do not pre-create named handler functions or `useCallback`. Use inline anonymous
 
 Express loading / empty / error via **props**, not `if (loading) return <Spinner/>` branches that
 mount and unmount whole subtrees.
+
+**Listings and images have their own rules.** A screen that lists records, or renders an image the
+user needs to read, follows `ai/shared-fe/09-data-listing.md` (table by default, server-driven sort /
+filter / paging, `limit`+`offset` in the URL, four states) and `ai/shared-fe/10-images-and-preview.md`
+(thumbnails open a preview modal, images reserve their box and fail visibly). Both apply when the user
+gave **no design**; with a design, STEP 0 wins.
 
 **Empty states — show, don't hide (MUST).** A section with no data keeps its **header** and renders a
 visible empty state. Never wrap the whole block in `data.length > 0 ? (…) : null` — a hidden block is
