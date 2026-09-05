@@ -20,7 +20,8 @@ ai/
 │   ├── 10-images-and-preview.md # Thumbnail → preview modal, no layout shift, visible failures
 │   ├── 11-responsive-defaults.md # One drawn width: build it, and don't break below it
 │   ├── 12-interactive-affordances.md # Cursor, hover, focus ring, hit target — a post-coding pass
-│   └── 13-mock-data.md          # Label what isn't wired yet; grep -rn MOCK finds every site
+│   ├── 13-mock-data.md          # Label what isn't wired yet; grep -rn MOCK finds every site
+│   └── 14-e2e-testing.md        # Playwright: the no-failing-request sweep + declared refusals
 ├── vendor/
 │   └── ECC-ADOPTION.md          # everything-claude-code review: provenance + what we turned off
 ├── templates/                   # Requirement-intake templates
@@ -311,6 +312,8 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 - **The design only drew one width — what about mobile?** → shared-fe/11-responsive-defaults.md
 - **Did I miss cursor / focus / hit targets?** → shared-fe/12-interactive-affordances.md
 - **How do I show data that has no API yet?** → shared-fe/13-mock-data.md
+- **Should I write an e2e test, and what does it assert?** → shared-fe/14-e2e-testing.md
+- **No Figma, but the feature exists in another repo?** → skills/fe-coding STEP 1.5
 - **How do I turn a user story / API spec into tasks?** → templates/input-processing-template.md
 - **How do I normalize cURL/JSON into a spec?** → templates/requirement-summary-template.md
 
@@ -338,6 +341,20 @@ For questions or clarifications:
 ---
 
 ## 🔄 Version History
+
+- **v1.7** (2026-09): E2E, sibling-repo UI, and states that get clipped
+  - New `shared-fe/14-e2e-testing.md` — Playwright. Every common page asserts **no undeclared 4xx or
+    5xx**; endpoints that are supposed to refuse assert their **exact** status, because a swallowed
+    403 gets diagnosed as a 502 outage. Seed the session, never drive the login form
+  - New hook `hooks/e2e-watch.mjs` — fires on an edit to a page, layout, route handler or `*Screen`
+    in a project that already has a suite, and asks whether the suite is now wrong. Silent otherwise
+  - `fe-coding` STEP 1.7 — offer e2e **in the plan**, once; never after the code is written
+  - `fe-coding` STEP 1.5 — when there is no Figma and a sibling repo already ships the screen, that
+    UI is the design: match its information order, groupings and labels, but build it with THIS
+    project's conventions. Authority runs Figma → sibling repo's shipped UI → the `09`–`13` defaults
+  - `shared-fe/12` §4b — a hover, focus, visited or active state must not be clipped by an
+    `overflow-hidden` ancestor, painted over by a neighbour, hidden under a sticky bar, or shift the
+    layout by adding a border that was not there at rest
 
 - **v1.6** (2026-09): Responsive, affordances, mock visibility, business context
   - New `shared-fe/11-responsive-defaults.md` — a design drawn at one width is built at that width

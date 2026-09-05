@@ -126,6 +126,40 @@ treat its 2px-perimeter / 3:1 contrast shape as a good default for the ring in �
 
 ---
 
+## 4b. A state that appears must not be clipped, overlaid, or shift the layout
+
+Hover, focus, visited and active states are drawn LAST and are the first thing a stacking context or
+an `overflow-hidden` ancestor eats. The control still works, so nothing fails — the affordance is
+just invisible, which is the same outcome as never having written it.
+
+Four failures, all common, all cheap to prevent:
+
+| Failure | Cause | Fix |
+|---|---|---|
+| Focus ring cut off on one side | an ancestor with `overflow-hidden` / `overflow-x-auto` — a card, a table wrapper, a scroller | `outline` with `outline-offset` still clips. Give the scroll container padding, or move the ring inside with `focus-visible:ring-inset` / an inner border |
+| Ring or hover hidden **behind** a neighbour | a sibling later in the DOM, or one with a `z-index`, painting over it | raise the focused element for the duration: `focus-visible:relative focus-visible:z-10` |
+| Focused control hidden under a sticky header or bottom bar | the sticky element is in a higher layer and the control scrolls under it | `scroll-margin-top` on the focusable, sized to the sticky element. This is WCAG 2.2 **2.4.11 Focus Not Obscured (Minimum), Level AA** |
+| The row jumps on hover | a border ADDED on hover, changing the box | keep the border always and change only its **colour**, or use `outline`/`ring`, which do not affect layout |
+
+```tsx
+// ✅ Border exists at rest and only changes colour; the ring can escape the card.
+<BaseCard className='border border-line transition-colors hover:border-brand-500
+                     focus-within:relative focus-within:z-10' />
+```
+
+```tsx
+// ❌ Three bugs in one line: the border appears on hover so every row shifts
+//    1px, the ring is clipped by the scroller above it, and a later sibling
+//    paints over both.
+<Col className='overflow-hidden'>
+  <BaseCard className='hover:border focus-visible:outline-2' />
+</Col>
+```
+
+**Check it, do not reason about it.** Tab to the control and *look* — is the whole ring visible on all
+four sides, in front of everything, and did nothing move? That is step 3 of the pass below, and it is
+the step people skip because the code looks right.
+
 ## 5. THE PASS — run this after the component compiles
 
 Not a re-read of the diff. Open the screen.
@@ -133,8 +167,10 @@ Not a re-read of the diff. Open the screen.
 1. **Grep the diff for handlers on non-controls** — `grep -nE '<(Col|Row|div)[^>]*onClick' <files>`.
    Every hit is §3.
 2. **Hover every pressable.** Cursor changes to a hand? Something visible changes?
-3. **Tab through, mouse untouched.** Every control reachable, in reading order, with a ring you can see
-   against its own background — and not hidden behind a sticky element (2.4.11).
+3. **Tab through, mouse untouched.** Every control reachable, in reading order, with a ring you can
+   see **on all four sides**, in front of its neighbours, not clipped by a scroller or card, and not
+   hidden behind a sticky header (2.4.11). Watch for movement: if the row shifts when a state
+   appears, a border is being added rather than recoloured (§4b).
 4. **Look at each disabled control.** `not-allowed` cursor, visibly muted, no hover response.
 5. **Measure the smallest target.** DevTools box model. `< 24` fails unless the spacing exception
    genuinely applies.
