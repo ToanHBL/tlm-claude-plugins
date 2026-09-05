@@ -57,6 +57,19 @@ free — the difference between an afternoon and a fortnight.
 if the value was `"closerequest"`" — Esc and close buttons, not light dismiss. Opt in with
 `closedby="any"`, and keep an explicit close button regardless.
 
+**Sync the native close back into React, and bind it yourself.** `close` does **not** bubble, and a
+modal is normally portalled to `document.body` — so delivering it depends on React attaching a
+non-delegated listener to that node. Bind it in the effect with `addEventListener('close', …)`
+instead. Whichever route delivers it, the handler must run: Esc and light dismiss close the element
+without React's state changing, and if nothing syncs that back, the `isOpen` flag stays true, the
+node stays mounted, and any scroll lock you applied is never released — the page cannot scroll again
+until a reload. The same effect that calls `showModal()` owns the scroll lock and must restore it in
+its cleanup.
+
+**Verify Esc and click-outside in a real browser.** Some embedded and preview browsers do not
+dispatch `close` at all — a bare `<dialog>` with a direct listener stays silent — so a passing
+automated check there proves nothing about either path.
+
 **If you hand-roll it, you own all of it.** MDN on `aria-modal`: "ARIA doesn't change anything about an
 element's function or behavior. To create a modal effect you must use JavaScript to manage behavior,
 focus, and ARIA states." A `<div role="dialog" aria-modal="true">` with no focus management announces
