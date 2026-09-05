@@ -501,7 +501,8 @@ When working in this project, keep in mind:
 - [ ] Loading/empty states expressed via props (no mount/unmount branching); empty sections keep their
       header and render a visible empty state — never `data.length > 0 ? … : null`
 - [ ] API types mirror the backend response field-for-field — no renaming/re-deriving in a mapper (§7b)
-- [ ] Mid-layout conditional blocks reserve space (`min-height`) instead of mounting/unmounting
+- [ ] Mid-layout conditional blocks transition in/out (`grid-rows-[0fr→1fr]` + opacity,
+      `motion-reduce:transition-none`) — they do NOT hold a permanent `min-height` gap
 - [ ] Dynamic display values wrapped in `safeString`; separators come from `joinWith`, never hardcoded
 - [ ] Uses the required import ordering
 - [ ] Responsive + accessible (ARIA) markup — semantic elements and ARIA/HTML attributes live inside `Base*` primitives (e.g. `BaseTable`, `BaseForm`), never as raw markup in screens
