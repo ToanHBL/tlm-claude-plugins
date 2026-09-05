@@ -511,26 +511,19 @@ When working in this project, keep in mind:
       `<button>` a pointer cursor; you have to ask for it
 - [ ] **No destructuring inside a function body** — see §9b. Props are the exception and stay
       destructured
-- [ ] **Every mock value is labelled `mock` on screen and `MOCK:` in the code** — see §9c
+- [ ] **Every unwired value carries `BaseMockBadge`, and `grep -rn MOCK src/` finds it** — see §9c
+- [ ] **Below the drawn width the layout does not break** — no horizontal page scroll, no clipped
+      text, `min-w-0` on flex children that truncate — see `11-responsive-defaults.md`
 
-### 9a. Pressable affordances (run this pass AFTER the component works)
+### 9a. Affordance pass (run in the browser, after the component compiles)
 
-An element that responds to a click has to *look* like it does, and this is the pass that is always
-skipped because the feature already works without it. Run it on every interactive element you added.
+The affordance boxes above cannot be confirmed by reading a diff — a button missing its pointer cursor
+reads perfectly in source. Tailwind v4's Preflight sets `cursor: default` on `<button>`, so a v3→v4
+upgrade silently removed the hand cursor from every button in the app and nothing failed.
 
-- [ ] **`cursor-pointer`.** Tailwind v4's Preflight sets `cursor: default` on `<button>` — the v3
-      default was `pointer`. Upgrading silently removed the affordance from every button in the app,
-      so **every** pressable element must now opt back in. Put it on the `Base*` primitive once so
-      callers inherit it, not on each call site.
-- [ ] **A visible `:hover` change** — colour, background or border. Not opacity alone.
-- [ ] **A visible `:focus-visible` ring**, and never `outline-none` without a replacement. Keyboard
-      users have no cursor to tell them where they are.
-- [ ] **`disabled:cursor-not-allowed`** plus a disabled style that reads as disabled, not as faint.
-- [ ] **Hit target at least 24×24 CSS px** (WCAG 2.2 §2.5.8 Target Size (Minimum), AA). A 16px `×`
-      on a tag fails this; pad it. 44×44 is the Enhanced (AAA) target — use it for anything reached
-      on a phone.
-- [ ] **A real `<button>` or `<a>`**, never a clickable `<div>`. A div is not focusable, does not fire
-      on Enter/Space, and is invisible to a screen reader.
+Run the six-step pass in [`12-interactive-affordances.md`](./12-interactive-affordances.md) §5 with the
+screen open — hover, tab through, check disabled states, measure the smallest hit target — and state in
+one line what you checked and anything you left failing.
 
 ### 9b. No destructuring inside a function body
 
@@ -567,26 +560,14 @@ body — API payloads, records, nested state — is read through.
 Framework-mandated shapes are not exceptions to invent: `const { vehicleId } = await params` in a
 Next.js route handler is the documented signature and stays.
 
-### 9c. Mock data is labelled, on screen and in the code
+### 9c. Mock data is labelled
 
-When a screen is built against a mock because the endpoint does not exist yet, **say so where it
-shows**. A reviewer must never mistake a placeholder for live data, and whoever wires the real API
-must be able to find every site by grep — not by reading the whole screen.
+Mock is scoped to **the field or section that has no endpoint**, not to the screen: what is wired
+renders live and unmarked, what is not carries a `BaseMockBadge` beside it — in every environment,
+because a field with no endpoint is mock in production too. A whole-screen banner is only for a screen
+where nothing is wired yet, and never together with badges.
 
-- **On screen:** a `mock` marker next to the value or the section it fills. Small, dashed-border,
-  warning colour, and shaped so it cannot be read as a value itself. A screenshot has to give it away.
-- **In the code:** a `MOCK:` comment at every site, saying *which* endpoint is missing. One token,
-  greppable, no synonyms.
-- **One switch, one place.** The mock/live decision is a single flag read in the service layer — never
-  a branch inside a component. Swapping in the endpoint is then a service change, and the components
-  never knew.
-- **The mock is typed to the real backend record.** A mock with an invented shape hard-codes the wrong
-  contract into every component that reads it.
-- **Remove the marker in the same commit that wires the endpoint.** A stale `mock` badge on real data
-  misleads exactly as much as no badge on fake data.
-
-Whole-screen mock gets a banner as well; per-value mock gets the inline marker. Both, when a mostly
-live screen has two fake fields — the banner alone does not say *which* two.
+`grep -rn MOCK src/` must find every site. Full rule: [`13-mock-data.md`](./13-mock-data.md).
 
 ### 10. Documentation Standards
 
