@@ -1,9 +1,0 @@
-# Test-project build & dependency artifacts (regenerable)
-node_modules/
-.next/
-out/
-dist/
-*.tsbuildinfo
-.expo/
-ios/
-android/
