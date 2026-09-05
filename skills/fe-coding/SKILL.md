@@ -22,11 +22,29 @@ If the request contains a **figma.com link**, this is a design-implementation ta
 
 1. **Verify the Figma MCP works** — not just that it's listed. Use **ToolSearch** for
    `mcp__*[Ff]ramelink*` / `mcp__*[Ff]igma*`, then **actually fetch the linked file**.
-2. **If the MCP is missing, unauthorized, or the fetch errors — STOP. Do not write UI code.**
+2. **If the tools are absent, work out WHY before you stop.** A session skips an MCP server it
+   failed to reach once and caches that failure, so "no Figma tools" usually means *not connected
+   this session*, not *not configured*. Walk the ladder, cheapest first, and stop at the first
+   thing that is actually broken:
+
+   | Check | How | What it rules out |
+   |---|---|---|
+   | Is it configured? | the plugin manifest's `mcpServers` | not installed |
+   | Is the token good? | `GET https://api.figma.com/v1/me` with `X-Figma-Token` | expired / wrong token |
+   | Can it see the file? | `GET /v1/files/<fileKey>?depth=1` | no access to that file |
+   | Does the server run? | launch it over stdio and send `initialize` + `tools/list` | a broken server |
+
+   When the token and the file are fine and the server starts, the only fault is the session's
+   cached connection — so **drive that same MCP server directly over stdio** and use its
+   `get_figma_data` output. That is still the design tool's output, which is the whole point of
+   this gate; it is not a workaround for a missing design. Say plainly in your summary that you
+   did this and why.
+
+3. **If a check above genuinely fails — STOP. Do not write UI code.**
 
    Report exactly what failed (not configured / token invalid or expired / file not accessible /
-   fetch error) and what unblocks it: `/project-setup figma`, or a token with *File content* scope
-   from Figma → avatar → Settings → Security → Personal access tokens.
+   server will not start) and what unblocks it: `/project-setup figma`, or a token with
+   *File content* scope from Figma → avatar → Settings → Security → Personal access tokens.
 
 **Do not improvise the design.** No scaffolding "something close" from the frame name, the URL, a
 screenshot, or your own sense of what the screen should look like. A screen built from a guess *looks*
@@ -129,6 +147,26 @@ real file instead.
    cross-repo change is their call and a separate PR.
 4. **A sibling repo's own rules win inside it.** If you quote or adapt code from it, follow *this*
    project's conventions in the code you write here.
+
+**Search the backend repo before you propose ANY new endpoint or type.** The screen you are about
+to build is often already served. Grep the backend for the domain noun plus the page's version
+(`VehicleV2`, `InstallRecord`) and read the controller's route attributes and the DTOs it returns —
+a page that looks like a dozen missing endpoints is regularly one existing payload plus two real
+gaps. Proposing a new API next to one that already ships is worse than guessing a field name: it
+gets built.
+
+**When something genuinely does not exist, write it down instead of inventing it.** Put the gap in
+a handoff doc (`_docs/<feature>-handoff.md`) that says what is reused, what is missing, and the
+shape you propose — and mark every such type in code as PROPOSED, next to the ones that mirror a
+real record. Then build the UI against a mock that is **typed to the real backend record**, so
+swapping the mock for the endpoint is a service change, not a component rewrite. A mock with an
+invented shape hard-codes the wrong contract into every component that reads it.
+
+**Respect the design file's own scope markers.** Canvases and sections say what they are —
+"build now", "Phase 2 — later", "Archive / WIP — nothing here is being built", "SUPERSEDED".
+Read them and build only what is in scope; a superseded frame looks exactly as finished as a
+current one. If a file has a Handover or Changelog frame, read it first: it carries the decisions
+and the "drawn but not yet true in code" list that no product frame shows.
 
 **When the repo you need is not registered**, say so and offer to add it — don't guess and don't
 silently proceed:
