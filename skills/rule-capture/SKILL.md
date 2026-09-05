@@ -42,8 +42,10 @@ When unsure, lean toward running it — the cost is one question.
 Search before classifying. Never claim something is new without looking.
 
 ```bash
-grep -rn --include="*.md" -i "<the concept>" "${CLAUDE_PLUGIN_ROOT}/ai" "${CLAUDE_PLUGIN_ROOT}/skills"
-grep -rn -i "<the concept>" CLAUDE.md .claude/ 2>/dev/null   # includes the vendored copy at .claude/tlm-plugin/
+# Rules root: this project's live copy if it exists, else the installed plugin.
+RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
+grep -rn --include="*.md" -i "<the concept>" "$RULES/ai" "$RULES/skills"
+grep -rn -i "<the concept>" CLAUDE.md .claude/ 2>/dev/null
 ```
 
 Also check this project's memory directory and any `CLAUDE.md` up the tree — a rule may already exist at
@@ -77,20 +79,22 @@ State the classification and what you found, then ask. One question, concrete op
 
 Options to offer:
 
-1. **Yes — plugin rule** (applies to every project, ships to the team): edit the **vendored copy**
-   (`tlm.pluginRepo.vendorDir`, default `.claude/tlm-plugin/`) and open a **PR** to the plugin upstream.
-   *Only offer this when `tlm.pluginRepo.enabled === true`* — otherwise the plugin can't be contributed to
-   from this project (say so, and suggest `/project-setup` if they want to enable it).
+1. **Yes — house rule** (live here immediately, shipped to the team by PR): edit this project's **rules
+   copy** (`tlm.pluginRepo.vendorDir`, default `.claude/tlm-plugin/`), then review and PR it upstream.
+   *Only offer this when the rules copy exists* — otherwise the project runs on the installed plugin and
+   nothing can be edited from here (say so, and suggest `/project-setup`, which installs it).
 2. **Yes — project rule** (this repo only): write it into this project's `CLAUDE.md`
 3. **Yes — my preference** (how I should work, not what the code should be): write it to memory
 4. **No — just this change**
 
-> **Why plugin scope is a PR, not an edit.** The installed plugin lives under `${CLAUDE_PLUGIN_ROOT}`, a
-> Claude Code **managed clone that `/plugin marketplace update` overwrites** — editing it there loses the
-> change and never reaches the team. So plugin-scope rules are staged in the committed vendored copy and
-> shipped via a PR. **Consequence the user must know:** a plugin rule does **not** take effect locally
-> until the PR merges and they run `/plugin marketplace update`. If they need it enforced *now* in this
-> repo too, also take option 2 (project rule) — the two aren't exclusive.
+> **Where a house rule actually lands.** The installed plugin under `${CLAUDE_PLUGIN_ROOT}` is a Claude
+> Code **managed clone that `/plugin marketplace update` overwrites** — never edit it. The rule goes in
+> this project's rules copy (`.claude/tlm-plugin/`), which **is the live source here**: skills read it and
+> the plugin's hooks delegate to it, so the rule is enforced in this repo from the next turn on, before
+> any PR exists. Two things still have to happen, and the user must know both:
+> **(a) commit it** — it is the rules the whole repo runs on; **(b) PR it upstream** — until that merges
+> and teammates run `/plugin marketplace update`, *other* repos and *other* people keep hitting the
+> problem it fixes.
 
 For a **CORRECTION**, also say which existing rule contradicts the feedback and where, so the user is
 choosing knowingly. For **ONE-OFF**, don't ask at all — just make the change.
@@ -99,43 +103,50 @@ choosing knowingly. For **ONE-OFF**, don't ask at all — just make the change.
 
 | Signal | Scope |
 |--------|-------|
-| Language/framework-level; true in any project on this stack | **Plugin** — `ai/` + skill |
+| Language/framework-level; true in any project on this stack | **House rule** — rules copy `ai/` + skill, then PR |
 | Depends on this repo's libraries, domain, backend, or team decisions | **Project** — `CLAUDE.md` |
 | About *how you work* (ask first, don't commit, keep it short) rather than the code | **Memory** |
 
 Default to **project** when torn. A too-narrow rule is easy to promote later; a wrong universal rule
-quietly misfires in every other repo.
+quietly misfires in every other repo — and now it does so from the moment it is written, not from the
+moment a PR merges.
 
 ---
 
 ## STEP 4 — Write it
 
-### Plugin scope — edit the vendored copy, then open a PR
+### House-rule scope — edit this project's rules copy, review, then PR
 
 **Never edit `${CLAUDE_PLUGIN_ROOT}` directly** (a managed clone; `/plugin marketplace update` overwrites
-it). All edits go into the **vendored copy** at `tlm.pluginRepo.vendorDir` (default `.claude/tlm-plugin/`),
-which is committed in this repo and mirrored upstream by the PR script. If the vendored copy is missing,
-stop and tell the user to run `/project-setup` to vendor the plugin first.
+it). All edits go into this project's rules copy at `tlm.pluginRepo.vendorDir` (default
+`.claude/tlm-plugin/`) — committed here, and **the source the skills and hooks actually run on**. If it is
+missing, stop and tell the user to run `/project-setup`, which installs it.
 
-Make the same layered edits you always would — **inside the vendored copy**:
+Make the same layered edits you always would — **inside the rules copy** (`$RULES` below):
 
-1. **Deep rule** → `<vendorDir>/ai/…`, same structure as its neighbours: the rule, **why** (the failure
-   it prevents), ❌ wrong / ✅ correct examples, any explicit exception.
-   - Shared across stacks → `<vendorDir>/ai/shared-fe/`
-   - Stack-specific → `<vendorDir>/ai/<stack>/06-hard-rules.md`
+1. **Deep rule** → `$RULES/ai/…`, same structure as its neighbours: the rule, **why** (the failure it
+   prevents), ❌ wrong / ✅ correct examples, any explicit exception.
+   - Shared across stacks → `$RULES/ai/shared-fe/`
+   - Stack-specific → `$RULES/ai/<stack>/06-hard-rules.md`
 2. **If CRITICAL enough to hold without a second file read** → also add a short form to
-   `<vendorDir>/skills/fe-coding/SKILL.md` in the matching section. Be strict; it stays useful only while short.
-3. **Checklist line** → `<vendorDir>/ai/shared-fe/07-ai-workflow-integration.md` §9 if it's checkable.
+   `$RULES/skills/fe-coding/SKILL.md` in the matching section. Be strict; it stays useful only while short.
+3. **Checklist line** → `$RULES/ai/shared-fe/07-ai-workflow-integration.md` §9 if it's checkable.
+4. **Mechanically detectable?** → add the `scan()` to `$RULES/hooks/lint-fe.mjs`. The installed hook
+   delegates to this copy, so the check is live in this repo immediately — only add rules with a low
+   false-positive rate.
 
 **Include the reason the user gave.** *"Use `navigate` not `push`"* gets ignored; *"because `push`
 always pushes, so a spam tap duplicates the screen and the user has to press back twice"* gets followed.
 The failure story is what makes a rule stick.
 
-Then **open the PR** with the helper — it clones the upstream, mirrors the vendored copy onto a branch,
-bumps the version in lockstep across the three manifest fields, pushes, and prints the PR/compare URL.
-Announce the command before running it:
+#### Then: review → ship
+
+The rule is already in effect locally. Two steps remain, in this order — **announce each command before
+running it**:
 
 ```bash
+RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
+
 # Export config from tlm.pluginRepo (each has a default; read the block from
 # .claude/settings.local.json). Then:
 export TLM_VENDOR_DIR="$(pwd)/.claude/tlm-plugin"     # tlm.pluginRepo.vendorDir
@@ -143,18 +154,28 @@ export TLM_UPSTREAM_REMOTE="git@github.com-hbl:ToanHBL/tlm-claude-plugins.git"  
 export TLM_OWNER_REPO="ToanHBL/tlm-claude-plugins"    # .ownerRepo
 export TLM_BASE="develop"                             # .baseBranch
 export TLM_BUMP="patch"                               # .bump
-export TLM_PR_MODE="compare-url"                      # .prMode
+export TLM_PR_MODE="gh"                               # .prMode  (falls back to a compare URL)
 export TLM_TITLE="rule(<slug>): <one-line summary>"
 export TLM_BODY="Classification + the rule + the WHY the user gave."
 
-bash "${CLAUDE_PLUGIN_ROOT}/skills/rule-capture/plugin-pr.sh" preflight   # sanity check first
-bash "${CLAUDE_PLUGIN_ROOT}/skills/rule-capture/plugin-pr.sh" open "<slug>"
+node "$RULES/skills/rule-capture/plugin-pr.mjs" preflight   # tools + access, no writes
+node "$RULES/skills/rule-capture/plugin-pr.mjs" diff        # REVIEW — show this output to the user
+node "$RULES/skills/rule-capture/plugin-pr.mjs" open "<slug>"   # branch, bump, push, open the PR
 ```
 
-Report the printed `PR_URL` (or the branch name if push failed — then tell the user to push it and open
-the PR by hand). Remind them the rule reaches every project only after the PR merges and they run
-`/plugin marketplace update`. If they need it live in *this* repo immediately, also apply it as a project
-rule (append to `CLAUDE.md`).
+1. **`diff` is the review gate, and it is not optional.** Show the user what the PR would change upstream
+   and get an explicit go-ahead before `open`. It is the last point where an unrelated edit sitting in the
+   rules copy — a half-finished experiment, a stray file — gets caught instead of shipped to everyone.
+2. **`open`** clones the upstream, mirrors the rules copy onto `rule/<slug>`, bumps the version in
+   lockstep across the three manifest fields, pushes, and opens the PR with `gh` (printing the compare URL
+   if `gh` is absent). It touches nothing in this project and nothing under `${CLAUDE_PLUGIN_ROOT}`.
+3. **Commit the rules copy in this repo too.** It is what this project runs on; an uncommitted rule is one
+   only your machine has.
+
+Report the printed `PR_URL` (or the branch name if the push failed — then tell the user to push it and
+open the PR by hand). If `preflight` cannot reach the upstream, the `upstreamRemote` is likely an SSH host
+alias that only exists on the original author's machine: ask for the URL that works on theirs and store it
+in `tlm.pluginRepo.upstreamRemote`.
 
 ### Project scope
 
@@ -191,7 +212,9 @@ it entirely and don't re-offer for the same feedback later in the session.
 ## RULES
 
 - **Ask before writing a rule. Always.** Never silently edit `ai/`, `CLAUDE.md`, or memory off the back
-  of one comment.
+  of one comment. A house rule now takes effect the moment it is written — there is no PR review standing
+  between a careless edit and the next turn of work.
+- **Review before shipping.** `plugin-pr.mjs diff`, shown to the user, before `open`. Every time.
 - **Search before claiming novelty.** "This is a new rule" is wrong if it's already written down, and
   it makes the rules look untrustworthy.
 - **One rule per correction.** Don't bundle three inferred rules out of one sentence.

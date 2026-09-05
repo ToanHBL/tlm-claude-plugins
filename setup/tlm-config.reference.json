@@ -9,7 +9,20 @@
     "for a fillable template and ./SETUP-CHECKLIST.md for the walkthrough."
   ],
 
-  "configVersion": 1,
+  "configVersion": 2,
+
+  "changelog": [
+    {
+      "version": 1,
+      "summary": "Initial schema."
+    },
+    {
+      "version": 2,
+      "summary": "tlm.ecosystem added (sibling repos of the same system that Claude may READ while working here). tlm.pluginRepo is now on by default and its vendored copy is the project's LIVE rules source rather than PR staging; prMode defaults to gh.",
+      "migration": "Run /project-setup: it installs .claude/tlm-plugin/ if absent, asks once for the other repos of this system (folder path or git URL, cloning what is missing), and writes .claude/ecosystem-map.md. Declining the ecosystem question writes ecosystem.enabled:false — it is never asked again."
+    }
+  ],
+  "$changelogNote": "Append an entry here — { version, summary, migration? } — every time a key under `tlm` is added, renamed, or changes meaning, and bump configVersion to match. hooks/setup-check.mjs reads this to tell a teammate on an older schema exactly what's new; /project-setup reads it to know which fields to add on a sync run. `migration` is optional free text for anything not self-evident from the summary (e.g. a default to apply, or a value that must be re-asked).",
 
   "storage": {
     "primary": {
@@ -34,6 +47,44 @@
     ]
   },
 
+  "initDoc": {
+    "$comment": [
+      "THE HANDOVER PATH into /project-setup. Every value in this schema that is a TEAM decision — the",
+      "tracker, its real status names, the base branch, the release channel, the sibling repos — was",
+      "answered once by whoever set the project up. A teammate onboarding later should not answer them",
+      "again: each re-answer is a chance to answer it differently, and one wrong status name means tickets",
+      "get moved into a status the board does not have.",
+      "So the lead fills ONE doc and sends it with the init command; /project-setup PHASE 0.5 applies it",
+      "and then asks only for what a file cannot carry."
+    ],
+    "template": "<rulesRoot>/setup/tlm-init.template.json — annotated, fill-in-the-blanks.",
+    "script": "<rulesRoot>/skills/project-setup/init.mjs — template | detect | apply | consume.",
+    "shape": "A settings.local.json (`env` + `tlm`, exactly as documented below) plus a $tlmInit meta block { templateVersion, configVersion, createdBy, createdFor, secrets, notes, howToUse }. Deliberately NOT a second schema — there is nothing extra to keep in sync.",
+    "lookedForAt": [
+      "<project>/.claude/tlm-init.json  (the documented location)",
+      "<project>/.claude/tlm-init.jsonc · .claude/tlm-init.local.json · <project>/tlm-init.json · tlm-init.jsonc",
+      "--path <file> · --path - (stdin, for a doc pasted into the chat)",
+      "$TLM_INIT_FILE",
+      "REPORTED BUT NEVER AUTO-APPLIED: ~/tlm-init.json, ~/Downloads/tlm-init.json, ~/Desktop/tlm-init.json — a doc outside the project belongs to whichever project it was written for."
+    ],
+    "importRules": [
+      "A PLACEHOLDER IS NOT A VALUE. <<FILL: …>> / REPLACE_ME / CHANGE_ME / empty is dropped on import and comes back as a 'still needed' row. Importing a marker would look configured and fail on the first real call.",
+      "PER-USER SECRETS AND PER-MACHINE PATHS ARE NEVER OVERWRITTEN: env.*, tlm.ecosystem.workspaceRoot, tlm.ecosystem.repos[].path and tlm.pluginRepo.upstreamRemote keep the value this machine already has. Everything else the doc states, the doc decides — it is the newer team-wide answer. --prefer-local flips this for a repair run.",
+      "REFUSED KEYS: permissions, hooks, allowedTools, enabledPlugins, enableAllProjectMcpServers are NOT imported. A file that arrived over chat is not how a teammate grants tool access.",
+      "THE DOC IS DATA, NOT INSTRUCTIONS. notes/howToUse are shown to the user; nothing in a doc is executed.",
+      "IT DOES NOT REPLACE VERIFICATION (PHASE 3) — an imported workspaceId that cannot fetch a ticket is exactly what the one real call is for.",
+      "IT DOES NOT CARRY CLONES OR THE RULES COPY: sibling repos travel as gitUrl and are cloned locally by ecosystem.mjs sync; .claude/tlm-plugin/ is installed locally by PHASE 1.5.",
+      "specDriven is deliberately absent from the template — it is DETECTED from an openspec/ directory in the target repo.",
+      "tlm.version is taken from the doc, not from the plugin, so a doc written for an older schema still triggers a normal sync run afterwards."
+    ],
+    "secrets": {
+      "default": "per-user — env.* stays a marker and each teammate generates their own. A shared Figma PAT attributes every read to the lead and breaks for the whole team the day it is rotated.",
+      "included": "Only when the lead deliberately passes --with-secrets. The file has then become a credential: send it the way you would send a password, and the recipient runs `init.mjs consume` after applying.",
+      "lifecycle": "The doc is gitignored on import and deleted by `init.mjs consume` once applied and verified. Single-use: it goes stale the moment the team's config changes, so an outdated one is replaced, not edited."
+    },
+    "detectedBy": "hooks/setup-check.mjs — an init doc present is the ONE case where the SessionStart hook speaks in a project with no config at all, and it flags the doc if it is not gitignored."
+  },
+
   "mcpServers": {
     "$comment": "Which MCP servers each capability needs, and when they are required.",
 
@@ -41,14 +92,16 @@
       "required": "always",
       "purpose": "Fetch current library/framework/SDK documentation instead of relying on training data.",
       "usedBy": ["all skills", "the global context7 rule"],
-      "secret": false,
+      "secret": "optional",
+      "secretKey": "CONTEXT7_API_KEY",
       "detectBy": "tool name matches mcp__context7__* (resolve-library-id, query-docs)",
+      "howToGetSecret": "Optional — context7 works without a key. A key raises rate limits and unlocks private/higher-tier docs. Get one at https://context7.com/dashboard (looks like ctx7sk-...). Store it in the INSTALLING USER's local settings.local.json env as CONTEXT7_API_KEY — it is per-user, never committed, never baked into plugin.json.",
       "bundled": true,
       "install": {
-        "note": "BUNDLED with the plugin (mcpServers in .claude-plugin/plugin.json) — loads automatically on install; do NOT add it to a project's settings.local.json. Requires Node for npx.",
+        "note": "BUNDLED with the plugin (mcpServers in .claude-plugin/plugin.json) — loads automatically on install; do NOT add it to a project's settings.local.json. Requires Node for npx. The bundled server reads the OPTIONAL CONTEXT7_API_KEY from the project's env via `--api-key=${CONTEXT7_API_KEY:-}` (same env-reference pattern as the Figma token; empty when unset → the server starts keyless). The only per-project step is putting the key in env, and only if you have one.",
         "settingsSnippet": {
           "command": "npx",
-          "args": ["-y", "@upstash/context7-mcp@latest"]
+          "args": ["-y", "@upstash/context7-mcp@latest", "--api-key=${CONTEXT7_API_KEY:-}"]
         }
       }
     },
@@ -109,11 +162,16 @@
 
     "github": {
       "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'github'",
-      "purpose": "GitHub Issues as the ticket system. No MCP needed — uses the gh CLI.",
+      "purpose": "GitHub Issues/PRs as the ticket system. Two ways to connect it — either works.",
       "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
       "secret": false,
-      "detectBy": "shell: gh auth status",
-      "install": { "command": "gh auth login" }
+      "detectBy": "tool name matches mcp__*[Gg]it[Hh]ub* (the Claude GitHub connector), OR shell: gh auth status (the gh CLI)",
+      "install": {
+        "method": "connector-or-cli",
+        "connector": "claude.ai → Settings → Connectors → GitHub → Connect (OAuth). Then /mcp in Claude Code to confirm it is listed. PREFERRED — no local CLI to install or keep authed.",
+        "cli": "gh auth login (fallback when the connector is unavailable; the release/deployment skills also read commit ranges with git regardless).",
+        "note": "OAuth via the connector stores no token in settings.local.json. Only the non-secret repo/workspace identifiers live in tlm."
+      }
     },
 
     "slack": {
@@ -143,24 +201,35 @@
       "     points the user at /project-setup to finish setup OR to set the capability's enabled:false,",
       "     then stops that skill. It does NOT limp along in a degraded 'local-only' mode.",
       "  5. Coding skills (fe-coding, rule-capture) have NO capability companions and always run.",
-      "This block documents CLIs (jq/node/gh/az/openspec) not covered under mcpServers; for MCP servers",
+      "This block documents CLIs (node/git/gh/az/openspec) not covered under mcpServers; for MCP servers",
       "it points back to the mcpServers entries above."
     ],
+    "$platforms": [
+      "Supported on Windows, macOS and Linux, with the SAME two tools installed by hand: node and git.",
+      "There is deliberately NO jq / bash / sed / grep / rsync dependency. The hooks and plugin-pr are",
+      "Node ESM (.mjs) and hooks.json invokes them in EXEC form (command:'node', args:[...]), because",
+      "shell-form .sh hooks are broken on Windows: Git Bash mangles backslash paths, .sh falls through to",
+      "the file-association handler, and `bash` is frequently not on PATH.",
+      "The bundled MCP servers go through mcp/launch.mjs for the same reason — a bare `npx` command fails",
+      "on Windows with `spawn npx ENOENT` (npx is a .cmd shim), while `cmd /c npx` does not exist on Unix.",
+      "The launcher resolves npm's own npx-cli.js next to the running Node and executes it with node."
+    ],
+
     "baseline": {
       "requiredWhen": "always",
       "items": {
         "node": {
           "kind": "cli",
-          "purpose": "Runs the npx-based MCP servers (context7, Framelink) and the OpenSpec CLI.",
+          "purpose": "Runs the plugin's own hooks (setup-check.mjs, lint-fe.mjs, vendor-watch.mjs), the contribute-back PR script (plugin-pr.mjs), the MCP launcher (mcp/launch.mjs) that starts context7 + Framelink, and the OpenSpec CLI. Without it enforcement is off and no bundled MCP server starts.",
           "minVersion": "18+ generally; >= 20.19.0 required if the spec-driven skill is used",
           "verify": "node -v",
-          "install": "https://nodejs.org, or a version manager (nvm / fnm / volta)"
+          "install": "https://nodejs.org, or a version manager (nvm / fnm / volta / nvm-windows). Windows: the official installer or `winget install OpenJS.NodeJS`."
         },
-        "jq": {
+        "git": {
           "kind": "cli",
-          "purpose": "Both hooks (SessionStart setup-check, PostToolUse lint-fe) parse their JSON payload with jq. Without jq BOTH hooks exit SILENTLY — no config warnings, no rule linting — and nothing tells the user enforcement is off. Treat as required.",
-          "verify": "command -v jq",
-          "install": "brew install jq (macOS) · apt install jq (Debian/Ubuntu) · choco install jq (Windows)"
+          "purpose": "The SessionStart hook uses it for the settings.local.json gitignore safety check; the contribute-back PR (plugin-pr.mjs) clones, branches and pushes with it; the release/deployment skills discover ticket ids from commit ranges.",
+          "verify": "git --version",
+          "install": "brew install git (macOS) · apt install git (Debian/Ubuntu) · Git for Windows from https://git-scm.com (Windows)"
         },
         "context7": {
           "kind": "mcp",
@@ -198,6 +267,21 @@
         "companions": ["baseline.node (>= 20.19.0)", "the openspec CLI via npx"],
         "ownedBy": ["spec-driven"],
         "hardness": "DEGRADES — opt-in per ticket; if Node < 20.19 or npm is unreachable, fall back to ordinary fe-coding. Never a hard block."
+      },
+      "ecosystem": {
+        "enabledBy": "tlm.ecosystem.enabled",
+        "requiredWhen": "tlm.ecosystem.enabled === true",
+        "companions": ["baseline.git", "baseline.node"],
+        "ownedBy": ["project-setup", "fe-coding"],
+        "hardness": "DEGRADES — a sibling repo missing from disk is reported and skipped; work in THIS repo continues. What must never happen is inventing a contract that lives in one of those repos: if the file cannot be opened, say so and ask rather than guessing the shape."
+      },
+      "rulesCopy": {
+        "enabledBy": "tlm.pluginRepo.enabled",
+        "requiredWhen": "tlm.pluginRepo.enabled === true (the default)",
+        "companions": ["baseline.git"],
+        "optional": ["gh — only for prMode:'gh'; without it plugin-pr.mjs prints the compare URL instead"],
+        "ownedBy": ["rule-capture", "project-setup"],
+        "hardness": "DEGRADES — with no local rules copy the project runs on the installed plugin and rule-capture offers only project/memory scope. Rules cannot be edited or shipped from this repo."
       }
     }
   },
@@ -393,21 +477,83 @@
       "unifiesWith": "tlm.tickets.planDir — when spec-driven is on, a ticket's OpenSpec change (openspec/changes/<ticket-id>-<slug>/) IS the plan; the ad-hoc plan file is not written."
     },
 
-    "pluginRepo": {
+    "ecosystem": {
       "$comment": [
-        "CONTRIBUTE-BACK contract. The plugin installs read-only under ${CLAUDE_PLUGIN_ROOT} (a Claude Code",
-        "managed clone that /plugin marketplace update overwrites), so edits made there are lost and never",
-        "reach the team. This block lets a consuming project VENDOR the plugin's editable source into the",
-        "repo, edit it there, and open a PR upstream. rule-capture (plugin scope) and the vendor-watch hook",
-        "read this. Absent/enabled:false → the contribute-back flow is off and rule-capture only offers",
-        "project (CLAUDE.md) and memory scopes."
+        "THE OTHER REPOS OF THIS SYSTEM. Most projects here are one piece of a larger whole: a screen calls",
+        "an API owned by another repo, a type comes from a shared package, a mobile app mirrors a web flow.",
+        "Guessing those contracts is the failure this block prevents — it registers the sibling repos, makes",
+        "sure they are on disk (cloning from gitUrl when they are not), and drives the map at indexFile that",
+        "fe-coding reads before it assumes anything cross-repo.",
+        "The siblings are READ-ONLY REFERENCE: Claude opens files in them, and never edits, commits or runs",
+        "anything there without the user asking. Registered PER PROJECT — each repo lists the siblings IT",
+        "actually needs, so an unrelated repo is never pulled into context.",
+        "Managed by /project-setup via <rulesRoot>/skills/project-setup/ecosystem.mjs",
+        "(subcommands: preflight | list | add <path-or-giturl> | sync | index)."
       ],
       "enabled": {
         "type": "boolean",
         "required": false,
         "default": false,
-        "description": "Does this project vendor the plugin source and allow opening PRs back to it? Set true by /project-setup when the user opts in.",
-        "source": "ask the user during /project-setup"
+        "description": "Does this project reference other repos of the system? false (or absent) means the question was answered no — fe-coding then works from this repo alone.",
+        "source": "ask the user once during /project-setup"
+      },
+      "workspaceRoot": {
+        "type": "string",
+        "required": false,
+        "default": "~/tlm-ecosystem",
+        "description": "Directory that holds the clones this plugin makes. One shared location per machine, so several projects referencing the same sibling share a single checkout instead of one copy each. Only used for repos given as a git URL; a repo given as an existing folder path stays where it is.",
+        "example": "~/tlm-ecosystem"
+      },
+      "indexFile": {
+        "type": "string",
+        "required": false,
+        "default": ".claude/ecosystem-map.md",
+        "description": "Generated map of the registered repos — stack, top-level layout, where the contracts live, and each sibling's own rule files. Committed (no secrets). Rebuilt by `ecosystem.mjs index`; never hand-edited. fe-coding reads it before touching anything cross-repo."
+      },
+      "repos": {
+        "type": "array",
+        "required": "when enabled",
+        "description": "The sibling repos. Each entry needs a path, a gitUrl, or both — with only a gitUrl the path defaults to <workspaceRoot>/<name>.",
+        "itemShape": {
+          "name": "Short identifier, also the clone directory name. Defaults to the repo name in gitUrl / the basename of path.",
+          "role": "What it is to this project: backend | web | mobile | shared-lib | design-system | infra | docs | other. Free text; it is what tells Claude WHY the repo is listed.",
+          "path": "Where it lives on disk. '~' is expanded; a relative path resolves against this project. Stored in ~-relative form so the config stays portable between machines.",
+          "gitUrl": "Clone URL. Recorded even for a repo added by path (read from its origin remote), so a teammate's /project-setup can clone the same thing.",
+          "ref": "Optional branch to clone/track. Omit for the repo's default branch.",
+          "depth": "Clone depth. Default 1 — these are references, not repos anyone works in from here. Set 0 for full history (needed only if you will read that repo's git log).",
+          "notes": "One line on what this project actually uses from it — 'the REST API the installer app calls', 'owns the shared Zod schemas'. Keep it concrete."
+        },
+        "example": [
+          {
+            "name": "tlm-api",
+            "role": "backend",
+            "path": "~/tlm-ecosystem/tlm-api",
+            "gitUrl": "git@github.com:acme/tlm-api.git",
+            "ref": "develop",
+            "notes": "REST API this app calls; endpoint shapes live in src/modules/**/dto"
+          }
+        ]
+      }
+    },
+
+    "pluginRepo": {
+      "$comment": [
+        "RULES SOURCE + contribute-back contract. Since configVersion 2 /project-setup installs the plugin's",
+        "editable source into the repo at vendorDir (committed) and THAT COPY IS THE LIVE SOURCE OF RULES for",
+        "this project: skills resolve their rules root to it first, and the plugin's hooks delegate to its",
+        "hooks. ${CLAUDE_PLUGIN_ROOT} stays the delivery channel and the fallback — it is a Claude Code managed",
+        "clone that /plugin marketplace update overwrites, so it is never edited in place.",
+        "Consequence: a rule edited here takes effect IMMEDIATELY in this repo, and the PR is how it reaches",
+        "the rest of the team. rule-capture (plugin scope), the vendor-watch hook and plugin-pr.mjs read this.",
+        "enabled:false → no local rules copy; rule-capture offers only project (CLAUDE.md) and memory scopes",
+        "and the project runs on whatever plugin version happens to be installed."
+      ],
+      "enabled": {
+        "type": "boolean",
+        "required": false,
+        "default": true,
+        "description": "Does this project keep its own live rules copy (and open PRs back to the plugin from it)? /project-setup installs it by default; set false only for a repo that must run purely on the installed plugin.",
+        "source": "installed by /project-setup unless the user opts out"
       },
       "upstreamRemote": {
         "type": "string",
@@ -433,13 +579,14 @@
         "type": "string",
         "required": false,
         "default": ".claude/tlm-plugin",
-        "description": "Path (repo-relative) of the committed, editable copy of the plugin's skills/ ai/ hooks/ setup/. NOT .claude/skills/ — that would double-register skill names against the installed plugin. The vendored copy is an EDIT + PR-STAGING surface only; edits do NOT take effect locally until merged upstream and pulled via /plugin marketplace update."
+        "description": "Path (repo-relative) of the committed, editable copy of the plugin's skills/ ai/ hooks/ setup/ — the LIVE rules source for this project. NOT .claude/skills/ — that would double-register skill names against the installed plugin. Edits here take effect immediately (skills read this root first; the installed hooks delegate to the copies here); the PR is what shares them with the team.",
+        "resolution": "Rules root = <project>/.claude/tlm-plugin if present, else ${CLAUDE_PLUGIN_ROOT}. Skills state this order in prose; hooks/lib/hook-io.mjs resolveRulesRoot() is its executable form."
       },
       "prMode": {
         "type": "enum",
-        "values": ["compare-url", "gh"],
-        "default": "compare-url",
-        "description": "'compare-url' — push the branch and print a GitHub compare link the user clicks to open the PR (no extra tooling). 'gh' — use the gh CLI to open the PR automatically (only if gh is installed and authed)."
+        "values": ["gh", "compare-url"],
+        "default": "gh",
+        "description": "'gh' — open the PR automatically with the gh CLI, falling back to printing the compare URL when gh is absent or not authed. 'compare-url' — always just push the branch and print a GitHub compare link the user clicks. Either way the REVIEW step is identical: run plugin-pr.mjs diff and show it to the user BEFORE plugin-pr.mjs open."
       },
       "bump": {
         "type": "enum",
@@ -449,8 +596,8 @@
       },
       "helperScript": {
         "type": "string",
-        "value": "${CLAUDE_PLUGIN_ROOT}/skills/rule-capture/plugin-pr.sh",
-        "description": "The script rule-capture invokes to clone upstream, sync the vendored edits onto a branch, bump versions in lockstep, commit, push, and print the PR/compare URL. Read its header for the env vars it takes."
+        "value": "<rulesRoot>/skills/rule-capture/plugin-pr.mjs",
+        "description": "The script rule-capture invokes. Subcommands: preflight (checks, no writes) · diff (REVIEW — exactly what a PR would change upstream, no writes, no push; show this to the user first) · open <slug> (clone upstream, mirror the rules copy onto a branch, bump versions in lockstep, commit, push, open the PR). Read its header for the env vars it takes."
       }
     }
   },
@@ -460,7 +607,7 @@
 
     "fe-coding": {
       "mcp": ["context7"],
-      "config": ["tlm.project.type"],
+      "config": ["tlm.project.type", "tlm.ecosystem (optional)"],
       "secrets": [],
       "ifMissing": "Auto-detect the stack from the repo, confirm with the user, then offer to persist it. Never blocks."
     },
@@ -487,7 +634,7 @@
       "config": ["tlm.pluginRepo (only for the PLUGIN scope / contribute-back path)"],
       "cli": ["git (always present); gh only if tlm.pluginRepo.prMode === 'gh'"],
       "secrets": [],
-      "ifMissing": "Always runs — it has no capability companion. Reads ai/ and skills/ from the plugin, plus the project's CLAUDE.md and memory. The PLUGIN scope is the only part that needs setup: it edits the vendored copy (tlm.pluginRepo.vendorDir) and opens a PR upstream via plugin-pr.sh. If tlm.pluginRepo is absent or enabled:false, do NOT offer plugin scope — offer only project (CLAUDE.md) and memory scopes, and tell the user to run /project-setup if they want contribute-back. If git push fails (no upstream access), degrade: leave the branch/commit and tell the user how to push + open the PR by hand. Never edit ${CLAUDE_PLUGIN_ROOT} in place — a marketplace update wipes it."
+      "ifMissing": "Always runs — it has no capability companion. Reads ai/ and skills/ from the plugin, plus the project's CLAUDE.md and memory. The PLUGIN scope is the only part that needs setup: it edits the vendored copy (tlm.pluginRepo.vendorDir) and opens a PR upstream via plugin-pr.mjs. If tlm.pluginRepo is absent or enabled:false, do NOT offer plugin scope — offer only project (CLAUDE.md) and memory scopes, and tell the user to run /project-setup if they want contribute-back. If git push fails (no upstream access), degrade: leave the branch/commit and tell the user how to push + open the PR by hand. Never edit ${CLAUDE_PLUGIN_ROOT} in place — a marketplace update wipes it."
     },
     "deployment-checklist": {
       "mcp": ["<the MCP for tlm.tickets.system>"],
@@ -509,11 +656,12 @@
     "NEVER print a secret value back to the user or into a commit, comment, or log.",
     "A capability is ALL-OR-NOTHING (see companions): if it is enabled, its companions are REQUIRED and verified before the owning skill runs; a missing companion stops that skill with two choices — finish setup via /project-setup, or set the capability enabled:false. No half-configured / degraded local-only mode.",
     "Within an enabled capability, a still-missing VALUE (e.g. a channel id, a status name) is asked for INLINE during planning and persisted — the requirement is on the companion being connected+verified, not on drip-feeding every value up front.",
-    "The BASELINE (context7, jq, node) is expected in every project; jq and node absences are surfaced loudly because the hooks and npx-based servers silently no-op without them.",
+    "The BASELINE (context7, node, git) is expected in every project. node runs the hooks themselves, the MCP launcher and the OpenSpec CLI; git backs the gitignore safety check and contribute-back. Their absence is surfaced loudly because enforcement and the npx-based servers stop working without them.",
     "Coding skills (fe-coding, rule-capture) have no capability companions and always run, even with zero config.",
     "At setup, DETECT the project's own rules/specs (CLAUDE.md, AGENTS.md, .cursorrules, .claude/rules, openspec/, docs/specs, eslint/prettier/biome/tsconfig) and HONOR them. The plugin's house rules layer on top and DEFER to an explicit project rule where they conflict — never silently override a documented project convention; surface the conflict and route a persistent override through rule-capture. Record the catalog in .claude/codebase-map.md.",
     "After collecting a value at runtime, offer to persist it so the next run does not ask again.",
+    "NEVER RE-ASK A QUESTION THAT IS ALREADY ANSWERED FOR THIS PROJECT. If an init doc is present (see initDoc), apply it with skills/project-setup/init.mjs BEFORE asking anything, and then ask only for what its 'still needed' list names. A placeholder in the doc is unanswered; a per-user secret or per-machine path already on this machine wins over the doc; permissions/hooks in a doc are refused.",
     "Verify a newly configured integration with one real read (fetch a ticket, resolve a Figma file) before relying on it.",
-    "CONTRIBUTE-BACK: the plugin under ${CLAUDE_PLUGIN_ROOT} is a read-only managed clone — NEVER edit it in place to change a rule (a marketplace update overwrites it and the team never sees it). Persistent PLUGIN-scope rule changes go through the vendored copy (tlm.pluginRepo.vendorDir) + a PR to the upstream (plugin-pr.sh). The vendored copy is an EDIT/PR-STAGING surface, not a live override: a change takes effect only after the PR merges and the user runs /plugin marketplace update. It lives at .claude/tlm-plugin/, NOT .claude/skills/, so it does not double-register skills against the installed plugin."
+    "RULES SOURCE: the plugin under ${CLAUDE_PLUGIN_ROOT} is a read-only managed clone — NEVER edit it in place (a marketplace update overwrites it and the team never sees it). A project's rules live in its own copy at tlm.pluginRepo.vendorDir (default .claude/tlm-plugin/, committed), and THAT copy is what the project runs on: rules root = <project>/.claude/tlm-plugin if present, else ${CLAUDE_PLUGIN_ROOT}; skills read from it and the installed hooks delegate to its hooks. So a house rule written there is in effect immediately in that repo — and reaches the team only via plugin-pr.mjs diff (review, shown to the user) then open <slug> (branch, lockstep version bump, push, PR). It lives at .claude/tlm-plugin/, NOT .claude/skills/, so it does not double-register skills against the installed plugin."
   ]
 }
