@@ -120,6 +120,11 @@ Shared headers/nav belong in `layout.tsx`, not per-page. A `'use client'` `Globa
 A screen isn't done with only the happy path. Before calling any screen/route finished:
 
 - New route segment → ships `loading.tsx` + `error.tsx` (streaming fallback + error boundary)
+- **Do NOT add a root `app/loading.tsx` when `app/page.tsx` only redirects.** It wraps the entire app
+  in a Suspense boundary, and if nothing resolves it every route paints the skeleton forever and no
+  page is reachable — the DOM shows an unresolved `<template id="B:0">` under the fallback. The
+  segment has no content of its own to stream, so the file buys nothing and costs the whole app. A
+  root `error.tsx` is still worth having: without one, a redirecting root has no error boundary at all.
 - Empty data → the project's shared empty-state component, with the section header still rendered
   (`ai/shared-fe/03` → "Empty States") — never an ad-hoc `<div>No data</div>`
 - Failure surface → the shared error-banner/toast component, never a one-off treatment
@@ -132,6 +137,7 @@ A screen isn't done with only the happy path. Before calling any screen/route fi
 - [ ] `'use client'` only where hooks/interactivity are needed, pushed to the leaves
 - [ ] No `Date.now()` / `new Date()` / `Math.random()` during render (hydration)
 - [ ] States shipped: `loading.tsx` / `error.tsx`, shared empty state, pending UI on forms
+- [ ] No root `app/loading.tsx` over a redirect-only `app/page.tsx` (deadlocks every route)
 - [ ] Params via `next/navigation` or props, never `next/router`
 - [ ] Mutations via Zod-validated, auth-checked Server Actions + `revalidatePath` / `revalidateTag`
 - [ ] Shared rules from `ai/shared-fe/` applied

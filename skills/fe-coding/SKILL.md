@@ -152,6 +152,24 @@ real file instead.
 4. **A sibling repo's own rules win inside it.** If you quote or adapt code from it, follow *this*
    project's conventions in the code you write here.
 
+**No design, but the feature already exists in a sibling repo? Follow ITS UI.** Before inventing a
+layout, check whether the registered repos already ship this screen — an admin app, a Blazor client,
+the mobile twin. If one does and the user gave no Figma, **that existing UI is the design**: match its
+information order, its groupings, its labels and its controls, so a user who knows one product is not
+relearning the other. Read the real component over there — `.claude/ecosystem-map.md` says where —
+and say in your summary which file you matched.
+
+**Match the styling, not the stack.** The other repo's framework, component library and CSS are its
+own; you still build with THIS project's conventions — `_modules/`, `Base*` primitives, tokens,
+`t()`, TanStack Query. Copy the shape of the screen and the words on it; never copy Blazor markup, a
+foreign design system's classes, or a state pattern that has no place here. Where its mechanism
+conflicts with ours, ours wins and you say why: a sibling caching bearer tokens in `localStorage` is
+not a reason for us to.
+
+Order of authority: **a Figma the user gave → the sibling repo's shipped UI → the defaults in
+`09`–`13`.** Never skip a rung, and never treat a sibling's UI as permission to ignore a design that
+does exist.
+
 **Search the backend repo before you propose ANY new endpoint or type.** The screen you are about
 to build is often already served. Grep the backend for the domain noun plus the page's version
 (`VehicleV2`, `InstallRecord`) and read the controller's route attributes and the DTOs it returns —
@@ -260,6 +278,24 @@ to edit, and a business insight that implies a change over there is a conversati
 
 ---
 
+## STEP 1.7 — E2E: ask in the PLAN, not at the end
+
+If the project **already has** a Playwright suite (`playwright.config.*`, `e2e/`), do not ask —
+updating it is part of the change, and the `e2e-watch` hook will remind you when you touch a route or
+a screen.
+
+If it does not, and this task adds or changes a user-reachable route, **offer it once while the plan
+is still being agreed**, as a line the user can strike out:
+
+> *E2E: I'll add a Playwright spec covering `/vehicles → /vehicles/{id} → install record` — the
+> navigation chain plus a no-failing-request sweep. Say if you'd rather skip it.*
+
+Asking after the code is written is too late: by then the answer costs the same either way and the
+honest one ("no") looks like a retreat. Full rule, including what the suite must assert and what it
+must not: `ai/shared-fe/14-e2e-testing.md`.
+
+---
+
 ## STEP 2 — Shared base (applies to EVERY stack, always)
 
 ### Choosing the Next.js router (team policy)
@@ -352,7 +388,8 @@ filter / paging, `limit`+`offset` in the URL, four states) and `ai/shared-fe/10-
 (thumbnails open a preview modal, images reserve their box and fail visibly). Both apply when the user
 gave **no design**; with a design, STEP 0 wins. Responsive defaults live in
 `ai/shared-fe/11-responsive-defaults.md`, the post-coding affordance pass in
-`ai/shared-fe/12-interactive-affordances.md`, and mock labelling in `ai/shared-fe/13-mock-data.md`.
+`ai/shared-fe/12-interactive-affordances.md`, mock labelling in `ai/shared-fe/13-mock-data.md`, and end-to-end coverage in
+`ai/shared-fe/14-e2e-testing.md`.
 
 **Empty states — show, don't hide (MUST).** A section with no data keeps its **header** and renders a
 visible empty state. Never wrap the whole block in `data.length > 0 ? (…) : null` — a hidden block is
