@@ -209,9 +209,15 @@ paths, `.sh` falls through to the file-association handler, `bash` is often off 
 real executable everywhere. Same reason the bundled MCP servers go through `mcp/launch.mjs` instead of
 a bare `npx` command, which fails on Windows with `spawn npx ENOENT`.
 
-The `.sh` originals are still in the tree, marked DEPRECATED, purely so the port can be diffed against
-them. Nothing calls them, and they have not tracked the v2.5.0 changes (delegation, the new checks) — so
-they are now a stale reference for the port only, and go away in v2.6.0. **Fix the `.mjs`, never the `.sh`.**
+The `.sh` originals are **gone** as of v2.6.0. They had stopped tracking the v2.5.0 changes (delegation,
+the new checks), so diffing a `.mjs` against one no longer proved anything — it only sent readers to a
+file that was wrong. If you ever need the pre-port behaviour, it is in the history:
+`git log --diff-filter=D --oneline -- hooks/lint-fe.sh` then `git show <sha>^:hooks/lint-fe.sh`
+(the repo carries no tags, so a `v2.5.0:` ref will not resolve).
+
+**The `SessionStart` matcher covers all five sources** — `startup|resume|clear|compact|fork`. `compact`
+is the load-bearing one: without it the config/init-doc/OpenSpec context is injected once at startup and
+then silently lost the first time a long session compacts.
 
 ## tests/ — fixtures, not runnable apps
 
@@ -236,10 +242,9 @@ echo '{"tool_input":{"file_path":"/abs/repo/.claude/tlm-plugin/ai/x.md"}}' | nod
 # ...and with a handed-over init doc in place, setup-check must speak even with zero config:
 touch /path/to/project/.claude/tlm-init.json && echo '{"cwd":"/path/to/project"}' | node hooks/setup-check.mjs
 
-# While the DEPRECATED .sh copies still exist (until v2.6.0), a port is only correct if it
-# matches them. Compare parsed JSON, since jq pretty-prints and JSON.stringify does not:
-P='{"tool_input":{"file_path":"/abs/path/to/File.tsx"}}'
-diff <(echo "$P" | bash hooks/lint-fe.sh | jq -S .) <(echo "$P" | node hooks/lint-fe.mjs | jq -S .)
+# A hook must stay SILENT when it has nothing to say — that is the property that keeps it
+# installed. Any stdout at all on a clean file is a bug:
+echo '{"tool_input":{"file_path":"'"$PWD"'/README.md"}}' | node hooks/lint-fe.mjs | wc -c   # expect 0
 
 # The rules-PR script, without writing anything:
 node skills/rule-capture/plugin-pr.mjs preflight
