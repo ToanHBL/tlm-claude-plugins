@@ -562,10 +562,10 @@ Next.js route handler is the documented signature and stays.
 
 ### 9c. Mock data is labelled
 
-Mock is scoped to **the field or section that has no endpoint**, not to the screen: what is wired
-renders live and unmarked, what is not carries a `BaseMockBadge` beside it — in every environment,
-because a field with no endpoint is mock in production too. A whole-screen banner is only for a screen
-where nothing is wired yet, and never together with badges.
+Mock is scoped to **the field that has no endpoint**, never to the screen and never behind a
+mock/live switch. What is wired renders live and unmarked; what is not renders from the mock — so the
+screen is not blocked — with a `BaseMockBadge` beside it, in every environment. Reuse a backend record
+for the unwired shape where one exists rather than inventing a parallel one.
 
 `grep -rn MOCK src/` must find every site. Full rule: [`13-mock-data.md`](./13-mock-data.md).
 

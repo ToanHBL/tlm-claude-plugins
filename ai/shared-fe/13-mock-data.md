@@ -20,30 +20,31 @@ and greppable code with an unlabelled screen ships fiction to a stakeholder.
 
 ---
 
-## 2. Mock is scoped to what is not wired — not to the screen
+## 2. Mock is scoped to the field, and it never blocks the screen
 
-The unit is the **field or section that has no endpoint**, never the whole page. A screen is normally
-mixed: most of it comes from a real API, and one or two parts do not exist yet.
+The unit is the **field or section that has no endpoint**. Never the screen, and never a
+mock-versus-live mode.
 
 | The value… | Renders | Marker |
 |---|---|---|
-| has a real endpoint and is wired | live data | **none** — a marker on real data is as misleading as none on fake |
-| has **no** endpoint yet | the mock | **`BaseMockBadge` beside it**, always, in every environment |
+| has an endpoint | **live data, always** | **none** — a marker on real data is as misleading as none on fake |
+| has **no** endpoint yet | the mock, so the screen still works | **a `mock` badge beside it**, in every environment |
 | has an endpoint that is failing right now | the error / unavailable state | none — that is `09-data-listing` §5, not a mock |
 
-**The badge is not conditional on an env var.** A field with no endpoint is mock in development, in
-staging and in production, until the endpoint exists. Hiding the badge in production would ship exactly
-the fiction this rule exists to prevent.
+**Show the mock; do not block on it.** A missing endpoint must not leave a hole, a spinner or a
+disabled screen. The user gets the layout, the shape of the value and a clear mark that this
+particular number is not real yet — which is strictly more useful than an empty panel, and it lets
+design review and QC proceed on everything around it.
 
-**A whole-screen banner is for one case only:** nothing on the screen is wired yet — a design review
-before any endpoint exists. The moment one field is real, drop the banner and mark the remaining mock
-fields individually, because a banner over real data teaches the reviewer to distrust the page and stop
-reporting anything.
+**There is no mock/live switch.** A flag that swaps the whole screen creates two products: one
+everybody demos and one that ships, and only the second is ever really tested. It also makes the
+badge lie — with the flag on, twenty fake fields sit behind two badges. If a screen has an endpoint,
+read it. If it does not, mock that field and badge it. Nothing in between.
 
-Never a banner and badges together. Two warnings for one condition read as ambiguity, and the reader
-resolves ambiguity by ignoring both.
-
----
+**Do not add a whole-screen banner.** Marking the individual fields is what tells the reader *which*
+values are waiting; a banner over a mostly-real page teaches them to distrust all of it and stop
+reporting anything. The only case for one is a screen where literally nothing is wired — and that is
+a screen that should not have been built yet.
 
 ## 3. What the marker looks like (MUST — one primitive, `BaseMockBadge`)
 
@@ -54,7 +55,7 @@ Two jobs, both required: **obvious in a screenshot**, and **impossible to mistak
 | **Dashed** border | Nothing else in the system is dashed. It reads as "provisional" at a glance, including in a screenshot pasted into a ticket. |
 | **Warning** tone, never a status colour | `success` / `danger` are data meanings. A mock marker must not look like a state the record is in. Needs `warning-*` tokens in `@theme` — adding them is a token change, not a per-component decision. |
 | The literal word **`mock`**, lowercase | Not an emoji, not `⚠`, not `TEST`, not `DEMO`. Unambiguous, and it is the same token you grep for. |
-| **Beside** the value, never replacing it | The reviewer still needs to see the placeholder's shape to tell you it is the wrong shape. |
+| **Beside** the value, never replacing it | The reviewer still needs to see the placeholder's shape to tell you it is the wrong shape — and the screen keeps working. |
 | A `title` giving the reason | "Placeholder data — no API for this value yet". |
 | Never a plausible value | No `—`, no `N/A`, no `0`, no `TBD`. Each of those is a legitimate real answer somewhere in this app. |
 
@@ -110,30 +111,35 @@ export async function fetchVehiclePage(token: string, vehicleId: number): Promis
   ]);
 
   return {
-    detail,
-    installRecord,
-    // MOCK: no endpoint returns a reverse-geocoded position or these counts yet.
-    lastPosition: vehicleV2Mock.lastPosition,
-    connectedTo: vehicleV2Mock.connectedTo,
+    detail,          // live
+    installRecord,   // live
+    // MOCK: no endpoint joins DeviceLastKnownPosition + IAddressService yet.
+    lastPosition: vehicleV2UnwiredMock.lastPosition,
+    // MOCK: no controller exposes a per-vehicle count for rules/zones/reminders.
+    connectedTo: vehicleV2UnwiredMock.connectedTo,
   };
 }
 ```
 
 ```ts
-// ❌ The decision made in a component. Now there are N places to find and flip.
-const data = process.env.NEXT_PUBLIC_MOCK === '1' ? { odometerKm: 84_213 } : liveData;
+// ❌ A mode switch. Two products, one of them untested, and the badges now lie
+//    about how much of the screen is fake.
+if (USE_MOCK) return wholePageMock;
 ```
 
 **Everything downstream of the seam stays honest.** A route handler with nothing real to serve returns
 `404`, not an invented success — the tile then renders its normal "unavailable" state
 (`10-images-and-preview` §3) instead of a fabricated one.
 
-**An env flag is for forcing the whole screen to mock during design review**, before any endpoint
-exists. Default it to whatever the team reviews with, document it in `.env.example` in the same change,
-and delete it once the screen is wired. It never controls whether a badge shows.
+**No env flag.** The service assembles the payload from whatever exists and fills the rest from the
+mock module — one function, one path, the same in every environment. A component receives a field and
+renders it; it never learns which of the two it got, and it never branches on an environment variable.
 
-**The mock is typed to the real backend record.** A mock with an invented shape hard-codes the wrong
-contract into every component that reads it.
+**The mock is typed to the real backend record — and reuses one where it exists.** Before inventing a
+shape for something unwired, search the backend for a record that already carries that data: a
+position DTO, an address type, a paged-result wrapper. Inventing `{ latitude, longitude, addressLine }`
+next to an existing `LatLngAddress { Lat, Lng, Address }` guarantees a rename the day it is wired. A
+mock with an invented shape hard-codes the wrong contract into every component that reads it.
 
 ---
 
