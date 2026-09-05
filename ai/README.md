@@ -17,7 +17,12 @@ ai/
 │   ├── 07-ai-workflow-integration.md   # AI/contributor operating manual
 │   ├── 08-cross-platform-architecture.md # Web ↔ React Native mapping
 │   ├── 09-data-listing.md       # Tables, sort, filter, limit/offset paging, four states
-│   └── 10-images-and-preview.md # Thumbnail → preview modal, no layout shift, visible failures
+│   ├── 10-images-and-preview.md # Thumbnail → preview modal, no layout shift, visible failures
+│   ├── 11-responsive-defaults.md # One drawn width: build it, and don't break below it
+│   ├── 12-interactive-affordances.md # Cursor, hover, focus ring, hit target — a post-coding pass
+│   └── 13-mock-data.md          # Label what isn't wired yet; grep -rn MOCK finds every site
+├── vendor/
+│   └── ECC-ADOPTION.md          # everything-claude-code review: provenance + what we turned off
 ├── templates/                   # Requirement-intake templates
 │   ├── input-processing-template.md
 │   └── requirement-summary-template.md
@@ -303,6 +308,9 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 - **How should an AI/new contributor generate code here?** → shared-fe/07-ai-workflow-integration.md
 - **How do I build a list with sort/filter/paging?** → shared-fe/09-data-listing.md
 - **How do I render an image, or a photo preview?** → shared-fe/10-images-and-preview.md
+- **The design only drew one width — what about mobile?** → shared-fe/11-responsive-defaults.md
+- **Did I miss cursor / focus / hit targets?** → shared-fe/12-interactive-affordances.md
+- **How do I show data that has no API yet?** → shared-fe/13-mock-data.md
 - **How do I turn a user story / API spec into tasks?** → templates/input-processing-template.md
 - **How do I normalize cURL/JSON into a spec?** → templates/requirement-summary-template.md
 
@@ -330,6 +338,20 @@ For questions or clarifications:
 ---
 
 ## 🔄 Version History
+
+- **v1.6** (2026-09): Responsive, affordances, mock visibility, business context
+  - New `shared-fe/11-responsive-defaults.md` — a design drawn at one width is built at that width
+    AND must not break below it; mobile-first ordering, `flex-wrap` vs `auto-fit` grid, `min-w-0`,
+    tables scroll rather than stack. Never a licence to invent a mobile design that exists in Figma
+  - New `shared-fe/12-interactive-affordances.md` — Tailwind v4's Preflight sets `cursor: default`
+    on `<button>`, so every pressable must ask for the pointer back; plus hover, `focus-visible`,
+    disabled, WCAG 2.2 hit targets, and a six-step pass run with the screen open
+  - New `shared-fe/13-mock-data.md` — mock is scoped to the field that has no endpoint, not the
+    screen; badge in every environment; `grep -rn MOCK src/` finds every site
+  - `fe-coding` STEP 1.6 — business understanding across the repos in `ecosystem-map.md`: draft
+    first, ask 3–5 questions once, persist to `.claude/business-context.md`, recap one line per task
+  - New `vendor/ECC-ADOPTION.md` — review of `everything-claude-code`: provenance, what overlaps,
+    what conflicts, and why nothing was copied (the repo ships no LICENSE)
 
 - **v1.5** (2026-09): Rules for frontend work with no design input
   - New `shared-fe/09-data-listing.md` — a listing is a `BaseTable`; the server sorts, filters and
