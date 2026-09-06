@@ -356,7 +356,7 @@ export const useMutationDelete = () => useMutation({ /* DELETE external */ });
 
 ## When to Use Page Router vs App Router
 
-> **Team policy: Page Router is the default; App Router is the exception** (see the `fe-coding`
+> **Team policy: Page Router is the default; App Router is the exception** (see the `tlm-fe-coding`
 > skill → "Choosing the Next.js router"). Default to Page Router for management/admin/internal apps; use
 > App Router only when genuinely needed — chiefly public, SEO-facing "publish" pages.
 

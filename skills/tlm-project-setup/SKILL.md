@@ -1,10 +1,10 @@
 ---
-name: project-setup
-description: Scan this project for missing workflow-skill config, ask the gating questions in ONE round, then present a single fill-in form for every value the user must supply — each with instructions on where to get it — and write .claude/settings.local.json. Also the repair path when a skill reports missing or broken config. Also installs this project's live rules copy (.claude/tlm-plugin/) and registers the OTHER repos of the system this project must read — a backend it calls, a shared package, a web/mobile twin — cloning them when given a git URL and writing .claude/ecosystem-map.md. TRIGGER whenever the user says "project setup", "setup config", "setup mcp", "config skill", "thiếu config", "setup dự án", "cấu hình mcp", "add repo", "thêm repo", "link project khác", "ecosystem", "workspace", when a workflow skill reports a missing tlm config, or when onboarding this plugin into a new repo. ALSO the starter path: on an empty repo, offers the house Turborepo starter (apps/* + packages/contracts + turbo.json) — TRIGGER on "new project", "dự án mới", "starter", "scaffold", "turborepo", "monorepo", "bootstrap project". ALSO the handover path: "/project-setup init" applies a pre-filled init doc (.claude/tlm-init.json) the project lead sent, so a teammate is asked only for what a file cannot carry — TRIGGER on "init", "project-setup init", "setup sẵn", "file init", "onboard", "handover", or when the user pastes a tlm-init JSON.
+name: tlm-project-setup
+description: Scan this project for missing workflow-skill config, ask the gating questions in ONE round, then present a single fill-in form for every value the user must supply — each with instructions on where to get it — and write .claude/settings.local.json. Also the repair path when a skill reports missing or broken config. Also installs this project's live rules copy (.claude/tlm-plugin/) and registers the OTHER repos of the system this project must read — a backend it calls, a shared package, a web/mobile twin — cloning them when given a git URL and writing .claude/ecosystem-map.md. TRIGGER whenever the user says "project setup", "setup config", "setup mcp", "config skill", "thiếu config", "setup dự án", "cấu hình mcp", "add repo", "thêm repo", "link project khác", "ecosystem", "workspace", when a workflow skill reports a missing tlm config, or when onboarding this plugin into a new repo. ALSO the starter path: on an empty repo, offers the house Turborepo starter (apps/* + packages/contracts + turbo.json) — TRIGGER on "new project", "dự án mới", "starter", "scaffold", "turborepo", "monorepo", "bootstrap project". ALSO the handover path: "/tlm-project-setup init" applies a pre-filled init doc (.claude/tlm-init.json) the project lead sent, so a teammate is asked only for what a file cannot carry — TRIGGER on "init", "tlm-project-setup init", "setup sẵn", "file init", "onboard", "handover", or when the user pastes a tlm-init JSON.
 ---
 
-Configure this project for the workflow skills (`figma-to-code`, `ticket-workflow`, `ba-ticket`,
-`mobile-release-notes`, `deployment-checklist`), install its **live rules copy**, and register the
+Configure this project for the workflow skills (`tlm-figma-to-code`, `tlm-ticket-workflow`, `tlm-ba-ticket`,
+`tlm-mobile-release-notes`, `tlm-deployment-checklist`), install its **live rules copy**, and register the
 **other repos of this system** it needs to read — with **one round of questions and one form**:
 
 **Scan → Apply the init doc (if one was handed over) → Ask once (gating) → Show ONE fill-in form →
@@ -37,23 +37,23 @@ ls "$RULES/setup/"
 - `$RULES/setup/SETUP-CHECKLIST.md` — the human walkthrough, incl. troubleshooting
 - `$RULES/setup/settings.local.example.json` — fillable template
 - `$RULES/setup/tlm-init.template.json` — the **init doc** template a lead fills in and hands over
-- `$RULES/skills/project-setup/init.mjs` — reads that doc: `template | detect | apply | consume`
-- `$RULES/skills/project-setup/ecosystem.mjs` — registers / clones / indexes the system's other repos
-- `$RULES/skills/rule-capture/plugin-pr.mjs` — reviews (`diff`) and ships (`open`) a rule change
+- `$RULES/skills/tlm-project-setup/init.mjs` — reads that doc: `template | detect | apply | consume`
+- `$RULES/skills/tlm-project-setup/ecosystem.mjs` — registers / clones / indexes the system's other repos
+- `$RULES/skills/tlm-rule-capture/plugin-pr.mjs` — reviews (`diff`) and ships (`open`) a rule change
 
 If `CLAUDE_PLUGIN_ROOT` is unset (skill copied into `~/.claude/skills/` rather than installed as a
 plugin), look for `setup/` beside the skill directory, then fall back to the schema documented in
 PHASE 4 — never block on a missing reference file.
 
-**Input**: optionally one capability to (re)configure — `/project-setup figma`, `/project-setup slack`,
-`/project-setup tickets`. With an argument, scan and fix only that section and leave the rest untouched.
+**Input**: optionally one capability to (re)configure — `/tlm-project-setup figma`, `/tlm-project-setup slack`,
+`/tlm-project-setup tickets`. With an argument, scan and fix only that section and leave the rest untouched.
 
 Two more argument forms, both about the **handover path** (PHASE 0.5):
 
-- `/project-setup init` · `/project-setup init <path>` — a lead sent a **pre-filled init doc**; apply it
+- `/tlm-project-setup init` · `/tlm-project-setup init <path>` — a lead sent a **pre-filled init doc**; apply it
   and ask only for what it does not carry. Also what to run when the user pastes a `tlm-init` JSON into
   the chat instead of saving a file.
-- `/project-setup handover` — the other direction: **produce** an init doc from *this* project's working
+- `/tlm-project-setup handover` — the other direction: **produce** an init doc from *this* project's working
   config, for the lead to send to the team (see "ISSUING A HANDOVER DOC" at the end).
 
 ---
@@ -80,7 +80,7 @@ ls .claude/tlm-init.json tlm-init.json 2>/dev/null                              
   hand-edited file.
 - **`__NOT_IGNORED__`** → add `.claude/settings.local.json` to `.gitignore` **first**, and say so. Never
   put a secret in a tracked file.
-- **An init doc present** (or the user invoked `/project-setup init`, or pasted one) → PHASE 0.5 runs
+- **An init doc present** (or the user invoked `/tlm-project-setup init`, or pasted one) → PHASE 0.5 runs
   before any question is asked. Do not start the form off a doc you haven't imported.
 - **`tlm.version` older than the reference's `configVersion`** → a **sync run**: the plugin (and its
   schema) updated since this project was configured — normal after a teammate's plugin auto-updates.
@@ -143,13 +143,13 @@ ls .claude/codebase-map.md 2>/dev/null                        # prior scan, if a
 - **Read** each that exists. Note where the project **agrees** with the house rules (reinforce) and
   where it **conflicts** (e.g. it allows raw HTML, uses a different nav pattern, relaxes strict TS).
 - **Conflict resolution: the project's explicit rule wins for that project.** Record and apply it;
-  surface the conflict to the user, and if it's worth persisting route it through `rule-capture` (which
+  surface the conflict to the user, and if it's worth persisting route it through `tlm-rule-capture` (which
   writes a project-scoped override to this repo's `CLAUDE.md`). Never silently replace a documented
   project convention with the plugin default.
-- An existing **`openspec/`** means spec-driven is already set up → plan to set
-  `tlm.specDriven.engine="openspec"` in PHASE 4 (see the `spec-driven` skill).
+- An existing **`openspec/`** means tlm-spec-driven is already set up → plan to set
+  `tlm.specDriven.engine="openspec"` in PHASE 4 (see the `tlm-spec-driven` skill).
 - **Record the catalog** in `.claude/codebase-map.md` under a `project rules:` line (sources found +
-  any overrides), so later sessions and `fe-coding` read it before applying defaults.
+  any overrides), so later sessions and `tlm-fe-coding` read it before applying defaults.
 
 ---
 
@@ -165,7 +165,7 @@ covers what a file cannot carry.
 mentioning it:
 
 ```bash
-node "$RULES/skills/project-setup/init.mjs" detect        # no writes; exit 3 = no doc → PHASE 1 as usual
+node "$RULES/skills/tlm-project-setup/init.mjs" detect        # no writes; exit 3 = no doc → PHASE 1 as usual
 ```
 
 It looks at `.claude/tlm-init.json` (then `.jsonc`, `tlm-init.json` at the root), or `--path <file>`, or
@@ -185,7 +185,7 @@ TLM_INIT
 **Announce, then apply.** Show the user the `from` / `carries` / `answers` lines, then:
 
 ```bash
-node "$RULES/skills/project-setup/init.mjs" apply         # add --dry-run to preview, --prefer-local on a repair run
+node "$RULES/skills/tlm-project-setup/init.mjs" apply         # add --dry-run to preview, --prefer-local on a repair run
 ```
 
 `apply` merges into `.claude/settings.local.json`, gitignores what holds secrets, and prints four blocks
@@ -301,7 +301,7 @@ rules cannot be changed or shipped from this repo, and it runs on whatever plugi
 2. **Write a `RULES.md`** at the rules-dir root recording: source plugin + version (read from
    `${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json`), that **this copy is what the project runs on**,
    that changes here are live immediately but reach the team only via
-   `skills/rule-capture/plugin-pr.mjs diff` → `open <slug>`, and that `${CLAUDE_PLUGIN_ROOT}` is never
+   `skills/tlm-rule-capture/plugin-pr.mjs diff` → `open <slug>`, and that `${CLAUDE_PLUGIN_ROOT}` is never
    hand-edited.
 3. **Commit it.** It is the rules the whole repo runs on — an uncommitted copy means each contributor
    silently runs something different.
@@ -329,15 +329,15 @@ actually uses from it.
 RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
 
 # folder already on disk:
-node "$RULES/skills/project-setup/ecosystem.mjs" add ~/Projects/tlm-api --role backend --notes "REST API this app calls"
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add ~/Projects/tlm-api --role backend --notes "REST API this app calls"
 # clone URL:
-node "$RULES/skills/project-setup/ecosystem.mjs" add git@github.com:acme/tlm-web.git --role web --ref develop
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add git@github.com:acme/tlm-web.git --role web --ref develop
 # a pasted browse URL — clone URL + branch are parsed out of it:
-node "$RULES/skills/project-setup/ecosystem.mjs" add "https://github.com/acme/tlm-web/tree/develop" --role web
-node "$RULES/skills/project-setup/ecosystem.mjs" add "https://dev.azure.com/org/_git/api?version=GBstage" --role backend
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add "https://github.com/acme/tlm-web/tree/develop" --role web
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add "https://dev.azure.com/org/_git/api?version=GBstage" --role backend
 
-node "$RULES/skills/project-setup/ecosystem.mjs" sync     # clone what is missing, fetch what is there
-node "$RULES/skills/project-setup/ecosystem.mjs" index    # write .claude/ecosystem-map.md (+ relationships)
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" sync     # clone what is missing, fetch what is there
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" index    # write .claude/ecosystem-map.md (+ relationships)
 ```
 
 - **Clones land in one shared `workspaceRoot`** (default `~/tlm-ecosystem`), so several projects
@@ -346,7 +346,7 @@ node "$RULES/skills/project-setup/ecosystem.mjs" index    # write .claude/ecosys
   Azure PAT / credential manager); if a clone fails, report the exact error and point them at their auth,
   don't guess the contract.
 - **A repo already on disk stays where it is.** `add <path>` records its `origin` URL too, so a
-  teammate's `/project-setup` can clone the same thing.
+  teammate's `/tlm-project-setup` can clone the same thing.
 - **`index` is what Claude actually reads** — `.claude/ecosystem-map.md`, committed, no secrets. It writes
   each repo's stack/layout/contracts/own-rules **and a "How these repos relate" section** (the repos
   grouped by role, plus any detected shared-package dependency). Re-run it after adding a repo. This is
@@ -456,7 +456,7 @@ encodes, so its `still needed` list *is* the outstanding column.
 | `tickets.idPattern` | detected from `git log` — confirm in the form |
 | `tickets.workspaceId` · `tickets.urlTemplate` | **form** — derived from one pasted ticket URL |
 | `tickets.statuses` | **PHASE 3**, after the tracker verifies — fetch a real ticket, show its real vocabulary, then ask. Never in the blind form. |
-| `tickets.hasDeploymentTicket` | **form** — no default exists, and `deployment-checklist` PHASE 4 branches on it |
+| `tickets.hasDeploymentTicket` | **form** — no default exists, and `tlm-deployment-checklist` PHASE 4 branches on it |
 | `tickets.planDir` · `tickets.branchPrefixes` | defaults, but **confirm in the form** — teams differ (`_docs` vs `docs/`, `feat/` vs `feature/`). Show the default and let them overwrite it. |
 | `tickets.commentLanguage` | **form** — defaults to `en`, but this is the language of plan files and of comments posted back to the tracker. Ask a non-English team explicitly; do not assume from the chat language. |
 | `chat.enabled` | PHASE 1 Q3 · `chat.system`, `chat.sendMode` are defaults |
@@ -558,17 +558,17 @@ framelink   ✅ bundled, verified (token stored in env)
 clickup     ⚠️  connector not authorized — claude.ai → Settings → Connectors, then /mcp
 slack       — skipped (not used by this project)
 
-project rules found:  CLAUDE.md, .eslintrc, openspec/ (spec-driven on)  → honored; 1 conflict noted
+project rules found:  CLAUDE.md, .eslintrc, openspec/ (tlm-spec-driven on)  → honored; 1 conflict noted
 rules copy   ✅ .claude/tlm-plugin/ (v2.5.0) — live source, commit it
 ecosystem    ✅ 2 repos: tlm-api (backend, cloned), tlm-web (web, ~/Projects/tlm-web)
                 map → .claude/ecosystem-map.md
 ✓ Wrote .claude/settings.local.json (gitignored) · catalog in .claude/codebase-map.md
-✓ Ready now:  fe-coding, figma-to-code, rule-capture, spec-driven
-⚠ Blocked:    ticket-workflow, deployment-checklist — connect the ClickUp connector above
+✓ Ready now:  tlm-fe-coding, tlm-figma-to-code, tlm-rule-capture, tlm-spec-driven
+⚠ Blocked:    tlm-ticket-workflow, tlm-deployment-checklist — connect the ClickUp connector above
 ```
 
 If PHASE 0.4 surfaced a project rule that **conflicts** with a house rule, name it here and say it will
-be honored for this project (routed through `rule-capture` if it should persist).
+be honored for this project (routed through `tlm-rule-capture` if it should persist).
 
 Never print a secret value. Finish by naming which skills are usable now, and list anything still
 outstanding with its exact next action. On a sync run, add one line: `✓ Synced tlm schema v<old> → v<new>`.
@@ -576,7 +576,7 @@ outstanding with its exact next action. On a sync run, add one line: `✓ Synced
 **If PHASE 0.5 applied a doc, close it out here:**
 
 ```bash
-node "$RULES/skills/project-setup/init.mjs" consume     # deletes the doc; its values live in settings.local.json now
+node "$RULES/skills/tlm-project-setup/init.mjs" consume     # deletes the doc; its values live in settings.local.json now
 ```
 
 Do this once verification has passed — immediately and without asking if the doc carried a real token
@@ -587,14 +587,14 @@ outdated one is a fresh doc from the lead, not an edited copy.
 
 ---
 
-## ISSUING A HANDOVER DOC (the lead's side — `/project-setup handover`)
+## ISSUING A HANDOVER DOC (the lead's side — `/tlm-project-setup handover`)
 
 The mirror image: this project is configured and working, and the user wants the **next** person to skip
 the questions. Generate the doc from the live config rather than typing one — a working project is the
 answer key:
 
 ```bash
-node "$RULES/skills/project-setup/init.mjs" template --from-current --out ~/tlm-init.json --for "installer team"
+node "$RULES/skills/tlm-project-setup/init.mjs" template --from-current --out ~/tlm-init.json --for "installer team"
 ```
 
 It reads `.claude/settings.local.json`, and by default:
@@ -608,7 +608,7 @@ It reads `.claude/settings.local.json`, and by default:
   travels; the path does not), and `specDriven` (it is detected from the target repo's `openspec/`, and
   claiming it for a repo without one is a lie the skill would act on).
 - **prints the handover message** to paste alongside the file: save it as `.claude/tlm-init.json`, run
-  `/project-setup init`.
+  `/tlm-project-setup init`.
 
 Then **show the user what it carries before they send it** — tracker ids, channel ids, repo URLs and
 their team's status vocabulary are all in there. `node … init.mjs template` with no `--from-current`
@@ -629,7 +629,7 @@ block — the *skills* enforce.
 are **required** — connected *and* verified — before the owning skill runs:
 
 1. If a companion is missing, **stop that skill** and give the user two choices: finish setup via
-   `/project-setup`, or set the capability's `enabled:false`. Do **not** run a degraded / "local-only"
+   `/tlm-project-setup`, or set the capability's `enabled:false`. Do **not** run a degraded / "local-only"
    version of an enabled capability.
 2. Within a *connected* capability, a still-missing single **value** (a channel id, a status name) is
    asked for **inline during planning**, batched, with where to get it — then persisted. The requirement
@@ -640,12 +640,12 @@ are **required** — connected *and* verified — before the owning skill runs:
    and the ecosystem clones. Verify with `node -v` and `git --version`. On Windows, if `node` resolves in a
    terminal but not in the session, that is a **PATH** problem, not a missing install.
 
-**`figma-to-code` is the hardest stop.** Design enabled but the file unfetchable → it writes no UI code.
+**`tlm-figma-to-code` is the hardest stop.** Design enabled but the file unfetchable → it writes no UI code.
 There is no reduced version — a screen built from a guess looks finished, so nobody re-checks it, and
 every wrong value gets reviewed as if it were the design.
 
-**`spec-driven` is the one that degrades**, not blocks — it's opt-in per ticket and falls back to
-ordinary `fe-coding` if OpenSpec (Node ≥ 20.19) isn't available.
+**`tlm-spec-driven` is the one that degrades**, not blocks — it's opt-in per ticket and falls back to
+ordinary `tlm-fe-coding` if OpenSpec (Node ≥ 20.19) isn't available.
 
-**Coding skills (`fe-coding`, `rule-capture`) have no capability companions and always run**, even with
+**Coding skills (`tlm-fe-coding`, `tlm-rule-capture`) have no capability companions and always run**, even with
 zero config.

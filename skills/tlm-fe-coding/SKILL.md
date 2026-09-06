@@ -1,5 +1,5 @@
 ---
-name: fe-coding
+name: tlm-fe-coding
 description: House conventions for ALL frontend work — Next.js (App Router or Page Router), React Native (Expo Router or CLI), and Next.js API route handlers with Prisma. Detects the project's stack, applies the shared _modules architecture, component hierarchy, Link-only navigation, function minimalism, Tailwind/StyleSheet styling, TypeScript and Zod/React-Hook-Form rules, then layers the stack-specific hard rules on top. Reads .claude/ecosystem-map.md before assuming any contract that lives in another repo of the system (backend API, shared package, web/mobile twin) instead of guessing it. Use whenever creating or editing a component, screen, page, layout, hook, API client, route handler, form, or navigation in any frontend project — including in app/, pages/, _layout.tsx, route.ts, 'use server' actions, expo-router imports, or useQuery hooks.
 ---
 
@@ -10,7 +10,7 @@ stack-specific hard rules.** Deep reference lives under `ai/` and is read on dem
 
 **Rules root** — where `ai/` is read from: `<project>/.claude/tlm-plugin/` if that directory exists,
 else `${CLAUDE_PLUGIN_ROOT}`. The first is this project's own copy of the rules (installed by
-`/project-setup`, committed, **live**); the second is the installed plugin. When they differ, the
+`/tlm-project-setup`, committed, **live**); the second is the installed plugin. When they differ, the
 project's copy wins — that is how a team keeps a rule this repo needs before it has shipped upstream.
 
 ---
@@ -18,7 +18,7 @@ project's copy wins — that is how a team keeps a rule this repo needs before i
 ## STEP 0 — Figma link present? Gate before any UI code (HARD STOP)
 
 If the request contains a **figma.com link**, this is a design-implementation task. Hand it to the
-`figma-to-code` skill, and before writing a single line of UI:
+`tlm-figma-to-code` skill, and before writing a single line of UI:
 
 1. **Verify the Figma MCP works** — not just that it's listed. Use **ToolSearch** for
    `mcp__*[Ff]ramelink*` / `mcp__*[Ff]igma*`, then **actually fetch the linked file**.
@@ -41,13 +41,13 @@ If the request contains a **figma.com link**, this is a design-implementation ta
    did this and why.
 
    A **429 / quota** error is none of these faults. It is a wait, not a failure: back off and loop per
-   `figma-to-code` PHASE 0.5, chunking by node id and caching each success. Never report a rate limit
+   `tlm-figma-to-code` PHASE 0.5, chunking by node id and caching each success. Never report a rate limit
    as a broken MCP.
 
 3. **If a check above genuinely fails — STOP. Do not write UI code.**
 
    Report exactly what failed (not configured / token invalid or expired / file not accessible /
-   server will not start) and what unblocks it: `/project-setup figma`, or a token with
+   server will not start) and what unblocks it: `/tlm-project-setup figma`, or a token with
    *File content* scope from Figma → avatar → Settings → Security → Personal access tokens.
 
 **Do not improvise the design.** No scaffolding "something close" from the frame name, the URL, a
@@ -122,7 +122,7 @@ repo; `.claude/ecosystem-map.md` (STEP 1.5) is everything outside it:
 them. The house rules below **layer on top of** these and **defer to an explicit project rule where they
 conflict** (e.g. the project deliberately allows a pattern these rules forbid). Don't silently override a
 documented project convention; surface the conflict and, if it should stick, route it through
-`rule-capture`. `project-setup` PHASE 0.4 catalogs these into the map.
+`tlm-rule-capture`. `tlm-project-setup` PHASE 0.4 catalogs these into the map.
 
 On **later** sessions, read `.claude/codebase-map.md` first and skip the directory scan. Re-scan only
 when it looks stale — a `Base*` primitive you expect is absent, the detected stack disagrees with the
@@ -141,7 +141,7 @@ real file instead.
 
 **When the task mentions another system, service, app or shared package:**
 
-1. **Read `.claude/ecosystem-map.md` first** (written by `/project-setup`). It lists each registered
+1. **Read `.claude/ecosystem-map.md` first** (written by `/tlm-project-setup`). It lists each registered
    repo: where it is on disk, its stack, where its contracts live, and which of its own rule files
    govern it.
 2. **Open the actual file** in that repo — the DTO, the schema, the route handler, the exported type.
@@ -195,9 +195,9 @@ silently proceed:
 
 ```bash
 RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
-node "$RULES/skills/project-setup/ecosystem.mjs" list                       # what is registered
-node "$RULES/skills/project-setup/ecosystem.mjs" add <path-or-giturl> --role backend
-node "$RULES/skills/project-setup/ecosystem.mjs" sync && node "$RULES/skills/project-setup/ecosystem.mjs" index
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" list                       # what is registered
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add <path-or-giturl> --role backend
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" sync && node "$RULES/skills/tlm-project-setup/ecosystem.mjs" index
 ```
 
 If a registered repo is missing from disk, `sync` re-clones it. If it still cannot be read, **ask the
@@ -607,4 +607,4 @@ Plus: **every cross-repo contract you used came from a file you actually opened*
 looked right (STEP 1.5). If you had to assume one, say so explicitly in your summary.
 
 If the user corrects your output — "do it this way instead, because…" — that feedback may be a rule
-worth keeping. See the `rule-capture` skill.
+worth keeping. See the `tlm-rule-capture` skill.

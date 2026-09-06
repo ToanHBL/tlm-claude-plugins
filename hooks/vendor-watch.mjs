@@ -44,11 +44,11 @@ shared: teammates and other repos only get it once it is merged upstream and the
 /plugin marketplace update.
 
 ACTION FOR CLAUDE:
-1. Follow the rule-capture skill's PLUGIN scope (STEP 4): confirm this is a real house-rule change,
+1. Follow the tlm-rule-capture skill's PLUGIN scope (STEP 4): confirm this is a real house-rule change,
    not a stray edit.
 2. Show the user the change and offer to ship it. When they agree, run — announcing each first:
-     node "\${TLM_RULES_ROOT:-\${CLAUDE_PLUGIN_ROOT}}/skills/rule-capture/plugin-pr.mjs" diff
-     node "\${TLM_RULES_ROOT:-\${CLAUDE_PLUGIN_ROOT}}/skills/rule-capture/plugin-pr.mjs" open <slug>
+     node "\${TLM_RULES_ROOT:-\${CLAUDE_PLUGIN_ROOT}}/skills/tlm-rule-capture/plugin-pr.mjs" diff
+     node "\${TLM_RULES_ROOT:-\${CLAUDE_PLUGIN_ROOT}}/skills/tlm-rule-capture/plugin-pr.mjs" open <slug>
    'diff' is the review step (no writes, no push); 'open' clones the upstream, mirrors this copy onto a
    branch, bumps the version in lockstep, pushes, and opens the PR with gh (compare URL if gh is absent).
    Export TLM_* from tlm.pluginRepo first — see the script header.

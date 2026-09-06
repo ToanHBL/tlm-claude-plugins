@@ -1,6 +1,6 @@
 # Page Router — Hard Rules
 
-The enforceable rules for Next.js Page Router (`src/pages/`, Next.js 12–15). The `fe-coding` skill
+The enforceable rules for Next.js Page Router (`src/pages/`, Next.js 12–15). The `tlm-fe-coding` skill
 inlines the top few; this file is the full set. Deep detail: `01-architecture`, `02-routing-structure`,
 `03-api-data-flow`, `04-migration-to-app-router`, `05-fullstack-nextjs-api-prisma` in this folder.
 

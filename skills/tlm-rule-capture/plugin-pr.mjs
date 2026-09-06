@@ -28,7 +28,7 @@
 // reaches the TEAM. Always run 'diff' and show it to the user before 'open' — that
 // is the review step, and it is the last point where a stray edit can be caught.
 //
-// Config comes from env (rule-capture exports these from tlm.pluginRepo; each has
+// Config comes from env (tlm-rule-capture exports these from tlm.pluginRepo; each has
 // a default matching setup/tlm-config.reference.json):
 //   TLM_VENDOR_DIR      .claude/tlm-plugin        (repo-relative or absolute)
 //   TLM_UPSTREAM_REMOTE git@github.com-hbl:ToanHBL/tlm-claude-plugins.git
@@ -146,7 +146,7 @@ function preflight() {
   if (PR_MODE === 'gh') lines.push(which('gh') ? '  gh   ✓' : '  gh   ✗ — will fall back to compare-url')
   if (isDir(VENDOR_ABS)) lines.push('  rules copy present ✓')
   else {
-    lines.push("  rules copy MISSING ✗ — run /project-setup to install this project's rules copy")
+    lines.push("  rules copy MISSING ✗ — run /tlm-project-setup to install this project's rules copy")
     ok = false
   }
   process.stdout.write(lines.join('\n') + '\n')
@@ -170,7 +170,7 @@ function mirror(src, dest) {
 // Refresh the shared cache clone and put it on `branch`, cut from a pristine base.
 function prepareCheckout(branch) {
   if (!GIT) die("'git' is required but not found")
-  if (!isDir(VENDOR_ABS)) die(`vendor dir not found: ${VENDOR_ABS} (run /project-setup to install this project's rules copy)`)
+  if (!isDir(VENDOR_ABS)) die(`vendor dir not found: ${VENDOR_ABS} (run /tlm-project-setup to install this project's rules copy)`)
 
   fs.mkdirSync(CACHE_ROOT, { recursive: true })
   if (isDir(path.join(CHECKOUT, '.git'))) {
@@ -261,7 +261,7 @@ function openPr(rawSlug) {
 
   if (git(['-C', CHECKOUT, 'add', '-A']).status !== 0) die('git add failed')
   const title = env.TLM_TITLE || `rule(${slug}): capture house rule`
-  const body = env.TLM_BODY || 'Captured via rule-capture from a consuming project.'
+  const body = env.TLM_BODY || 'Captured via tlm-rule-capture from a consuming project.'
   const commit = git([
     '-C',
     CHECKOUT,

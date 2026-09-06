@@ -1,11 +1,11 @@
 # Setup Checklist — Walkthrough
 
-Everything a project must configure before the workflow skills (`figma-to-code`, `ticket-workflow`,
-`mobile-release-notes`, `deployment-checklist`) can run.
+Everything a project must configure before the workflow skills (`tlm-figma-to-code`, `tlm-ticket-workflow`,
+`tlm-mobile-release-notes`, `tlm-deployment-checklist`) can run.
 
 This ships with the plugin, so it applies to **any** project you install it into — not just this repo.
 
-**Don't work through this by hand.** Run `/project-setup` — it scans what it can detect, asks the
+**Don't work through this by hand.** Run `/tlm-project-setup` — it scans what it can detect, asks the
 gating questions in **one** round, then shows **one** form with every value you still need to supply
 (each with instructions), verifies each integration with a real call, and writes the config for you.
 This file is the reference it follows, and the thing to read when something breaks.
@@ -13,16 +13,16 @@ This file is the reference it follows, and the thing to read when something brea
 > **A capability is all-or-nothing.** Each capability below (design / tickets / chat) is either
 > **enabled with every companion installed *and* verified**, or **turned off**. A workflow skill will
 > **not** run a half-configured capability — if a companion is missing it stops and points you back here
-> (or to `/project-setup`) to finish setup or set that capability's `enabled:false`. There is no
+> (or to `/tlm-project-setup`) to finish setup or set that capability's `enabled:false`. There is no
 > degraded "local-only" middle mode. *Single values* within a connected capability (a channel id, a
 > status name) are still asked inline during planning — the requirement is on the companion being
 > connected and verified.
 >
-> **Figma is the hardest stop** (Step 2): with design enabled but the file unfetchable, `figma-to-code`
-> writes no UI code rather than approximating the design. **`spec-driven` is the exception that
+> **Figma is the hardest stop** (Step 2): with design enabled but the file unfetchable, `tlm-figma-to-code`
+> writes no UI code rather than approximating the design. **`tlm-spec-driven` is the exception that
 > degrades** — it's opt-in per ticket and falls back to ordinary coding if OpenSpec isn't available.
 >
-> **Coding needs none of this.** `fe-coding` and `rule-capture` have no capability companions and run
+> **Coding needs none of this.** `tlm-fe-coding` and `tlm-rule-capture` have no capability companions and run
 > with zero config.
 >
 > **Two steps are not capabilities and apply to every project.** Step 4.5 installs the rules copy this
@@ -30,7 +30,7 @@ This file is the reference it follows, and the thing to read when something brea
 > contracts instead of guessing them.
 >
 > **Were you sent a setup file?** Then skip most of this — go to **Step 0.5** and run
-> `/project-setup init`. Nearly everything below is already answered in it.
+> `/tlm-project-setup init`. Nearly everything below is already answered in it.
 
 ---
 
@@ -66,7 +66,7 @@ Install these before anything else — they're the baseline every capability bui
 
 - [ ] **Node.js** — runs the plugin's own hooks, the rules-PR script (`plugin-pr.mjs`), the ecosystem
       script (`ecosystem.mjs`), the MCP launcher that starts context7 + Framelink, and the OpenSpec CLI. `node -v`. Use **≥ 20.19** if
-      you'll use `spec-driven`. Windows: the official installer or `winget install OpenJS.NodeJS`.
+      you'll use `tlm-spec-driven`. Windows: the official installer or `winget install OpenJS.NodeJS`.
 - [ ] **git** — the SessionStart hook's gitignore safety check, the rules PR, cloning the sibling repos
       of Step 4.6, and the ticket discovery the release skills do over commit ranges. `git --version`. Windows: Git for Windows.
 - [ ] **context7 MCP** — see Step 1 (recommended for every skill).
@@ -78,7 +78,7 @@ Install these before anything else — they're the baseline every capability bui
 
 ## Step 0 — Answer four questions
 
-`/project-setup` asks these in one round. They decide which of the steps below apply to you.
+`/tlm-project-setup` asks these in one round. They decide which of the steps below apply to you.
 
 1. **Project type?** — Next.js Page Router / App Router / React Native Expo / RN CLI / Flutter *(auto-detected, you confirm)*
 2. **Which ticket system?** — ClickUp / Jira / Linear / Azure DevOps / GitHub Issues / none → gates Step 3
@@ -97,7 +97,7 @@ this project up — which is the point: two people answering "what is the in-rev
 people getting it slightly different.
 
 - [ ] Save the file into the project as **`.claude/tlm-init.json`**
-- [ ] Run **`/project-setup init`**
+- [ ] Run **`/tlm-project-setup init`**
 - [ ] Answer only what it asks — a file cannot carry your **own Figma token** or click **Connect** on the
       ClickUp / Slack connectors for you
 
@@ -120,7 +120,7 @@ access gets granted.
 In a project that is already configured and working:
 
 ```bash
-node <rulesRoot>/skills/project-setup/init.mjs template --from-current --out ~/tlm-init.json --for "installer team"
+node <rulesRoot>/skills/tlm-project-setup/init.mjs template --from-current --out ~/tlm-init.json --for "installer team"
 ```
 
 It reads your `.claude/settings.local.json`, **leaves secrets out** (a shared Figma token attributes
@@ -151,11 +151,11 @@ install. You only need Node available for `npx`.
 ## Step 2 — Framelink Figma MCP  · only if you build from designs
 
 > **Framelink *is* how this plugin reads Figma** — it's the alternative to Claude's built-in "Figma"
-> connector, and the one `figma-to-code` targets. Use Framelink; you do **not** need to enable the native
+> connector, and the one `tlm-figma-to-code` targets. Use Framelink; you do **not** need to enable the native
 > claude.ai Figma connector (leave it off in claude.ai → *Settings* → *Connectors*). "Figma" words in a
 > prompt still trigger the skill — it just fetches through Framelink.
 
-Needed by **`figma-to-code`** — and it is a **hard requirement**, not a nice-to-have. Without a working
+Needed by **`tlm-figma-to-code`** — and it is a **hard requirement**, not a nice-to-have. Without a working
 design fetch that skill **stops and writes no UI code**. It will not approximate the screen from a frame
 name, a screenshot, or your description: a guessed screen *looks* finished, so nobody re-checks it, and
 every wrong spacing, color and hierarchy then gets reviewed as if it were the design.
@@ -178,7 +178,7 @@ reads the token from your project's env, so all you supply is the token:
 
 ## Step 3 — Ticket system  · only if the project tracks tickets
 
-Needed by **`ticket-workflow`**, **`mobile-release-notes`**, **`deployment-checklist`**, **`ba-ticket`**.
+Needed by **`tlm-ticket-workflow`**, **`tlm-mobile-release-notes`**, **`tlm-deployment-checklist`**, **`tlm-ba-ticket`**.
 
 ### 3a. Connect the tool
 
@@ -208,7 +208,7 @@ git log --oneline -80 | grep -oiE '[A-Z]{2,}-[0-9]+' \
 - [ ] **Base branch** — `develop` / `main` / `master`
 - [ ] **BA ticket writing (optional)** — `baTemplates` ships team defaults (task `t-86d3tgzn8`,
       bug `t-86d08309p`); override only if your workspace uses different templates.
-      `defaultListId` (where `ba-ticket` creates tickets) can be set now or on first use.
+      `defaultListId` (where `tlm-ba-ticket` creates tickets) can be set now or on first use.
 
 - [ ] **Verify** — fetch one real ticket by its id and get back its name + status.
 
@@ -216,7 +216,7 @@ git log --oneline -80 | grep -oiE '[A-Z]{2,}-[0-9]+' \
 
 ## Step 4 — Slack  · only if you announce releases
 
-Needed by **`mobile-release-notes`**.
+Needed by **`tlm-mobile-release-notes`**.
 
 - [ ] **Connect** — claude.ai → *Settings* → *Connectors* → Slack → **Connect**
 - [ ] **Channel id per app** — Slack → channel → *View channel details* → id at the bottom (`C…`).
@@ -233,7 +233,7 @@ Needed by **`mobile-release-notes`**.
 
 ## Step 4.5 — This project's rules copy  · installed by default
 
-`/project-setup` copies the plugin's `skills/ ai/ hooks/ setup/` into **`.claude/tlm-plugin/`** (committed)
+`/tlm-project-setup` copies the plugin's `skills/ ai/ hooks/ setup/` into **`.claude/tlm-plugin/`** (committed)
 and **that copy is what this project runs on**:
 
 > **Rules root** = `<project>/.claude/tlm-plugin/` if present, else `${CLAUDE_PLUGIN_ROOT}`.
@@ -246,9 +246,9 @@ the repo.
 
 - [ ] **Installed** — `.claude/tlm-plugin/` exists and is **committed**. (An uncommitted copy means each
       contributor silently runs different rules.)
-- [ ] **Edit a rule** — correct Claude as usual; `rule-capture` writes it into this copy. It takes effect
+- [ ] **Edit a rule** — correct Claude as usual; `tlm-rule-capture` writes it into this copy. It takes effect
       **immediately** here; the `vendor-watch` hook then reminds Claude to ship it.
-- [ ] **Review before shipping** — `node .claude/tlm-plugin/skills/rule-capture/plugin-pr.mjs diff`
+- [ ] **Review before shipping** — `node .claude/tlm-plugin/skills/tlm-rule-capture/plugin-pr.mjs diff`
       prints exactly what a PR would change upstream. Nothing is written or pushed. Read it.
 - [ ] **Ship it** — `… plugin-pr.mjs open <slug>` clones the upstream (`ToanHBL/tlm-claude-plugins`, base
       `develop`), mirrors this copy onto `rule/<slug>`, bumps the version in lockstep, pushes, and opens
@@ -276,23 +276,23 @@ fails at runtime.
       `…/_git/<repo>?version=GB<branch>` page — `add` turns it into a clone URL + branch); plus a `role`
       (backend / web / mobile / shared-lib / design-system / infra) and one line of `notes` on what this
       project actually uses from it.
-- [ ] **Register + fetch** (`/project-setup` does this for you):
+- [ ] **Register + fetch** (`/tlm-project-setup` does this for you):
 
 ```bash
 RULES=".claude/tlm-plugin"; [ -d "$RULES" ] || RULES="${CLAUDE_PLUGIN_ROOT}"
-node "$RULES/skills/project-setup/ecosystem.mjs" add ~/Projects/tlm-api --role backend --notes "REST API this app calls"
-node "$RULES/skills/project-setup/ecosystem.mjs" add git@github.com:acme/tlm-web.git --role web --ref develop
-node "$RULES/skills/project-setup/ecosystem.mjs" add "https://github.com/acme/tlm-web/tree/develop" --role web   # pasted browse URL
-node "$RULES/skills/project-setup/ecosystem.mjs" add "https://dev.azure.com/org/_git/api?version=GBstage" --role backend
-node "$RULES/skills/project-setup/ecosystem.mjs" sync    # clone what's missing, fetch what's there (needs your git auth for private repos)
-node "$RULES/skills/project-setup/ecosystem.mjs" index   # write .claude/ecosystem-map.md (+ "How these repos relate")
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add ~/Projects/tlm-api --role backend --notes "REST API this app calls"
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add git@github.com:acme/tlm-web.git --role web --ref develop
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add "https://github.com/acme/tlm-web/tree/develop" --role web   # pasted browse URL
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" add "https://dev.azure.com/org/_git/api?version=GBstage" --role backend
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" sync    # clone what's missing, fetch what's there (needs your git auth for private repos)
+node "$RULES/skills/tlm-project-setup/ecosystem.mjs" index   # write .claude/ecosystem-map.md (+ "How these repos relate")
 ```
 
 - [ ] **Where clones land** — one shared `workspaceRoot` per machine (default `~/tlm-ecosystem`), so
       several projects referencing the same sibling share a single checkout. Shallow by default
       (`depth: 1`); set `depth: 0` on a repo whose git history you actually need to read.
       A repo given as a **folder path stays where it is** — nothing is moved or copied.
-- [ ] **The map** — `.claude/ecosystem-map.md` (committed, no secrets) is what `fe-coding` reads before
+- [ ] **The map** — `.claude/ecosystem-map.md` (committed, no secrets) is what `tlm-fe-coding` reads before
       assuming anything cross-repo. Per repo it records stack, layout, contract paths and the repo's own
       rules, and ends with a **"How these repos relate"** section (repos grouped by role + any detected
       shared-package dependency) — the cross-project relationship view. Re-run `index` after adding a repo;
@@ -333,7 +333,7 @@ failed Figma fetch, which stops rather than guessing.
 | Figma returns 403 | Token lacks *File content* scope, or the file is in a team you can't access |
 | Ticket fetch returns "not found" for a valid id | Custom ids not enabled on the workspace — try the numeric id, or set `workspaceId` |
 | Slack post rejected | Channel is externally shared — that's exactly why `sendMode` is `draft` |
-| A rule change has no effect | It went into `${CLAUDE_PLUGIN_ROOT}` instead of `.claude/tlm-plugin/`, or that directory doesn't exist yet — run `/project-setup` |
+| A rule change has no effect | It went into `${CLAUDE_PLUGIN_ROOT}` instead of `.claude/tlm-plugin/`, or that directory doesn't exist yet — run `/tlm-project-setup` |
 | `plugin-pr.mjs` clone/fetch fails | `upstreamRemote` is an SSH host alias that doesn't exist on this machine — set the URL that works for you |
 | Claude invents an endpoint from another repo | That repo isn't registered, or its clone is missing — `ecosystem.mjs list`, then `sync` |
 | Asked for values that were in the init doc | The doc wasn't imported (`init.mjs detect` — is it at `.claude/tlm-init.json`?), or those values were still `<<FILL: …>>` markers in it |

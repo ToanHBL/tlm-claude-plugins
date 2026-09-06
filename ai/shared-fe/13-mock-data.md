@@ -1,6 +1,6 @@
 # Mock Data — label what is not wired yet
 
-Applies whenever a screen renders values that did not come from the real API. `skills/fe-coding`
+Applies whenever a screen renders values that did not come from the real API. `skills/tlm-fe-coding`
 STEP 1.5 and `07` §7b govern the mock's **shape**; this file governs its **visibility**. Both apply —
 they are different failures.
 
@@ -155,4 +155,4 @@ actionable.
 ## Sources
 
 Mock *shape* discipline: [`07-ai-workflow-integration`](./07-ai-workflow-integration.md) §7b ·
-[`skills/fe-coding`](../../skills/fe-coding/SKILL.md) STEP 1.5.
+[`skills/tlm-fe-coding`](../../skills/tlm-fe-coding/SKILL.md) STEP 1.5.

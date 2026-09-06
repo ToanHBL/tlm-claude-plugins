@@ -40,7 +40,7 @@ not a portal rewrite. It uses plain npm workspaces; **the house starter adds Tur
 layout** for task orchestration and caching — the workspace shape is identical, `turbo.json` is the
 only addition.
 
-## Starter contents (what `project-setup` scaffolds on an empty repo)
+## Starter contents (what `tlm-project-setup` scaffolds on an empty repo)
 
 1. **Root `package.json`** — `"private": true`, `"workspaces": ["apps/*", "packages/*"]`,
    `"packageManager"` pinned, scripts delegating to turbo:
@@ -104,5 +104,5 @@ only addition.
 
 The monorepo replaces the ecosystem map only for repos *inside* it. External systems — a C# backend, a
 device-facing service — remain separate repos, registered per `tlm.ecosystem`, and their contracts are
-still read from the real files (fe-coding STEP 1.5), then mirrored into `packages/contracts` as Zod
+still read from the real files (tlm-fe-coding STEP 1.5), then mirrored into `packages/contracts` as Zod
 schemas per `15-zod-contract-first.md`.

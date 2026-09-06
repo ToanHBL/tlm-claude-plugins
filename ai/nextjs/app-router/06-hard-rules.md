@@ -1,6 +1,6 @@
 # App Router — Hard Rules
 
-The enforceable rules for Next.js App Router (`src/app/`, Next.js 13+). The `fe-coding` skill inlines
+The enforceable rules for Next.js App Router (`src/app/`, Next.js 13+). The `tlm-fe-coding` skill inlines
 the top few; this file is the full set. Deep detail: `01-architecture`, `02-routing-structure`,
 `03-server-actions`, `04-data-fetching` in this folder.
 
