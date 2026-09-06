@@ -501,6 +501,8 @@ When working in this project, keep in mind:
 - [ ] Loading/empty states expressed via props (no mount/unmount branching); empty sections keep their
       header and render a visible empty state — never `data.length > 0 ? … : null`
 - [ ] API types mirror the backend response field-for-field — no renaming/re-deriving in a mapper (§7b)
+- [ ] Mid-layout conditional blocks transition in/out (`grid-rows-[0fr→1fr]` + opacity,
+      `motion-reduce:transition-none`) — they do NOT hold a permanent `min-height` gap
 - [ ] Backend responses parsed through their Zod schema at the service boundary — never
       `res.json() as T`; fixtures pinned with `satisfies` (see `15-zod-contract-first.md`)
 - [ ] Mid-layout conditional blocks reserve space (`min-height`) instead of mounting/unmounting
