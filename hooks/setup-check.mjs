@@ -152,30 +152,6 @@ if (INIT_DOC) {
 const pluginRoot =
   process.env.CLAUDE_PLUGIN_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-// --- z-harness submodule ----------------------------------------------------
-// vendor/z-harness is a git submodule, and a submodule is exactly what a plain clone leaves empty.
-// Nothing in the `/plugin marketplace update` path passes --recurse-submodules, so on a fresh install
-// the directory is there and its contents are not. Reported rather than fixed: this hook runs at
-// SessionStart and must not reach the network to start a session.
-//
-// Silence when the directory is absent entirely, which is what an archive-delivered install looks
-// like — there is no submodule to be out of date, and a warning about one would be noise.
-let ZHARNESS = ''
-try {
-  const zRoot = path.join(pluginRoot, 'vendor', 'z-harness')
-  if (isDir(zRoot) && !isDir(path.join(zRoot, 'hooks'))) {
-    ZHARNESS = `[z-harness] vendor/z-harness is registered but not checked out, so none of its hooks are
-active — no worktree isolation, no plan gate, no gate-before-stop. A marketplace update does not
-populate a submodule. From the plugin directory:
-
-    node scripts/sync-z-harness.mjs
-
-If you did not intend to use z-harness in this project, nothing here is broken; it is inert.`
-  }
-} catch {
-  // Unreadable plugin directory — not this hook's problem to report.
-}
-
 const out = []
 const say = (s) => out.push(s)
 
@@ -187,7 +163,6 @@ function finish() {
   if (INIT_MSG) say(INIT_MSG)
   if (parseErrors.length) say(`[tlm-project-setup] Config file could not be read:\n${parseErrors.join('\n')}\n`)
   if (OPENSPEC_MSG) say(OPENSPEC_MSG)
-  if (ZHARNESS) say(ZHARNESS)
   if (out.length) process.stdout.write(out.join('\n') + '\n')
   process.exit(0)
 }
@@ -337,7 +312,6 @@ if (BASELINE_MSG) say(BASELINE_MSG + '\n')
 if (INIT_MSG) say(INIT_MSG + '\n')
 if (parseErrors.length) say(`[tlm-project-setup] Config file could not be read:\n${parseErrors.join('\n')}\n`)
 if (OPENSPEC_MSG) say(OPENSPEC_MSG + '\n')
-if (ZHARNESS) say(ZHARNESS + '\n')
 if (DRIFT) say(DRIFT + '\n')
 if (missing.length) {
   say(`[tlm-project-setup] This project's workflow-skill config is incomplete:\n\n${missing.join('\n')}\n`)

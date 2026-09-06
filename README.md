@@ -41,15 +41,21 @@ Deep reference the skills load on demand lives in [`ai/`](ai/); the setup contra
 
 ## Guardrails (z-harness)
 
-[z-harness](https://github.com/ndk98z/z-harness) rides along as a git submodule at
-`vendor/z-harness`: worktree isolation, a plan gate before the first edit to a path you call
-sensitive, content rules, and a gate-before-stop that runs your own test commands and blocks the stop
-while any is red.
+[z-harness](https://github.com/ndk98z/z-harness) is **copied** into `vendor/z-harness` for
+reference — worktree isolation, a plan gate before the first edit to a path you call sensitive,
+content rules, and a gate-before-stop that runs your own test commands and blocks the stop while any
+is red.
+
+A copy, not a submodule, and not wired into this plugin's `hooks.json`: nothing in it runs until you
+install z-harness itself. Read [`vendor/z-harness/PROVENANCE.md`](vendor/z-harness/PROVENANCE.md)
+before changing anything in there — it records which commit this came from, and edits made only in
+that directory are lost on the next sync. Syncing is manual for now.
 
 It is **separate on purpose.** Its hooks are bash + jq, and this plugin's are Node precisely so they
 run on Windows — folding them together would have cost that. So the two coexist rather than merge:
 z-harness reads `.claude/harness.json`, this plugin reads the `tlm` block in
-`.claude/settings.local.json`, and neither knows about the other's file.
+`.claude/settings.local.json`, and neither knows about the other's file. Install it separately, in the
+projects that want it.
 
 The one place they would have collided is the plan gate, which covers `.claude/` wholesale — including
 `.claude/tlm-plugin/`, the rules copy whose whole design is that you edit it mid-conversation. Excuse
@@ -111,16 +117,6 @@ MCP servers ship with the plugin and load on install; you supply only the Figma 
 **Updating:** `/plugin marketplace update tlm-claude-plugins`, or `claude plugin update
 tlm-claude-plugins`. Restart to apply.
 
-A submodule is the one thing a clone leaves behind, and nothing in the marketplace-update path passes
-`--recurse-submodules` — so `vendor/z-harness` arrives empty and stays empty, with every one of its
-hooks silently absent. Pull it separately, from the plugin directory:
-
-```bash
-node scripts/sync-z-harness.mjs
-```
-
-It checks the submodule out if it is missing, then fast-forwards it to z-harness **master** — not to
-the commit this repo has pinned, which is what a bare `git submodule update` would do.
-`--check` reports without touching anything. The SessionStart hook says so too if it finds the
-directory registered but empty, so the failure is loud rather than a set of guards that quietly
-never fire.
+`vendor/z-harness` is a plain copy, so an update brings whatever was committed here — there is no
+second fetch to remember, and equally no automatic pickup of z-harness's own changes. Re-copying is
+manual; `vendor/z-harness/PROVENANCE.md` records the baseline and the command.

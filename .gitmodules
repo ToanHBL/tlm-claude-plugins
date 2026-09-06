@@ -1,4 +1,0 @@
-[submodule "vendor/z-harness"]
-	path = vendor/z-harness
-	url = git@github.com-hbl:ndk98z/z-harness.git
-	branch = master
