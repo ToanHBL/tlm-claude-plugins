@@ -25,11 +25,41 @@ them all.
 | **`/tlm-deployment-checklist`** | Compares your branch against a base, finds every ticket in scope, enriches each from the tracker, and lists the services to deploy and migrations to run. | "release check", "deployment checklist" |
 | **`/tlm-spec-driven`** | Agrees the spec before any code, driving OpenSpec's propose → apply → archive loop. Offered per ticket, never forced. | "openspec", `/opsx:*`, an `openspec/` directory |
 
+### The router
+
+**`tlm-router`** is an agent, not a skill. Each skill already triggers itself on the obvious cases;
+what a description cannot see is *this* repository — whether the tracker is connected, whether the
+Figma token is still a placeholder, whether the sibling repo an API lives in was ever registered. Ask
+the router when a request could belong to more than one skill, or when a guardrail has refused
+something and you want to know which one and why. It names the route and stops; it does not implement.
+
 The workflow skills are **tracker-agnostic** — ClickUp, Jira, Linear, Azure DevOps or GitHub Issues,
 resolved from your config. The coding skills need no configuration at all.
 
 Deep reference the skills load on demand lives in [`ai/`](ai/); the setup contract lives in
 [`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
+
+## Guardrails (z-harness)
+
+[z-harness](https://github.com/ndk98z/z-harness) rides along as a git submodule at
+`vendor/z-harness`: worktree isolation, a plan gate before the first edit to a path you call
+sensitive, content rules, and a gate-before-stop that runs your own test commands and blocks the stop
+while any is red.
+
+It is **separate on purpose.** Its hooks are bash + jq, and this plugin's are Node precisely so they
+run on Windows — folding them together would have cost that. So the two coexist rather than merge:
+z-harness reads `.claude/harness.json`, this plugin reads the `tlm` block in
+`.claude/settings.local.json`, and neither knows about the other's file.
+
+The one place they would have collided is the plan gate, which covers `.claude/` wholesale — including
+`.claude/tlm-plugin/`, the rules copy whose whole design is that you edit it mid-conversation. Excuse
+it, in `.claude/harness.json`:
+
+```json
+{ "planExempt": ["^\\.claude/tlm-plugin/"] }
+```
+
+That excuses the plan gate only; a path in `sensitivePaths` stays reviewed.
 
 ## Install
 
@@ -80,3 +110,17 @@ MCP servers ship with the plugin and load on install; you supply only the Figma 
 
 **Updating:** `/plugin marketplace update tlm-claude-plugins`, or `claude plugin update
 tlm-claude-plugins`. Restart to apply.
+
+A submodule is the one thing a clone leaves behind, and nothing in the marketplace-update path passes
+`--recurse-submodules` — so `vendor/z-harness` arrives empty and stays empty, with every one of its
+hooks silently absent. Pull it separately, from the plugin directory:
+
+```bash
+node scripts/sync-z-harness.mjs
+```
+
+It checks the submodule out if it is missing, then fast-forwards it to z-harness **master** — not to
+the commit this repo has pinned, which is what a bare `git submodule update` would do.
+`--check` reports without touching anything. The SessionStart hook says so too if it finds the
+directory registered but empty, so the failure is loud rather than a set of guards that quietly
+never fire.

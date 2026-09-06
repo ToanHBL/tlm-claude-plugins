@@ -291,10 +291,12 @@ Do it unless the user explicitly opts out (then set `tlm.pluginRepo.enabled=fals
 rules cannot be changed or shipped from this repo, and it runs on whatever plugin version is installed).
 
 1. **Copy** the plugin's editable subtrees into the rules dir (NOT `.claude/skills/` — that would
-   double-register skill names against the installed plugin). Node, so it works on Windows too:
+   double-register skill names against the installed plugin). `vendor/` is deliberately not copied:
+   z-harness is a submodule with its own remote, and a vendored snapshot of it would be a third copy
+   to drift. Node, so it works on Windows too:
    ```bash
    node -e "const fs=require('fs'),p=require('path');const S=process.env.CLAUDE_PLUGIN_ROOT,D='.claude/tlm-plugin';\
-   for(const d of ['skills','ai','hooks','setup']){const s=p.join(S,d),t=p.join(D,d);if(!fs.existsSync(s))continue;\
+   for(const d of ['skills','ai','hooks','setup','agents']){const s=p.join(S,d),t=p.join(D,d);if(!fs.existsSync(s))continue;\
    fs.rmSync(t,{recursive:true,force:true});fs.cpSync(s,t,{recursive:true,filter:f=>!['node_modules','.next','.DS_Store','.git'].includes(p.basename(f))});}\
    console.log('rules copy installed at',D)"
    ```
