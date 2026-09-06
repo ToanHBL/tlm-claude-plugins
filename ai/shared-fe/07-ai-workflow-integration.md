@@ -501,12 +501,77 @@ When working in this project, keep in mind:
 - [ ] Loading/empty states expressed via props (no mount/unmount branching); empty sections keep their
       header and render a visible empty state — never `data.length > 0 ? … : null`
 - [ ] API types mirror the backend response field-for-field — no renaming/re-deriving in a mapper (§7b)
+- [ ] Mid-layout conditional blocks transition in/out (`grid-rows-[0fr→1fr]` + opacity,
+      `motion-reduce:transition-none`) — they do NOT hold a permanent `min-height` gap
+- [ ] Backend responses parsed through their Zod schema at the service boundary — never
+      `res.json() as T`; fixtures pinned with `satisfies` (see `15-zod-contract-first.md`)
 - [ ] Mid-layout conditional blocks reserve space (`min-height`) instead of mounting/unmounting
 - [ ] Dynamic display values wrapped in `safeString`; separators come from `joinWith`, never hardcoded
 - [ ] Uses the required import ordering
 - [ ] Responsive + accessible (ARIA) markup — semantic elements and ARIA/HTML attributes live inside `Base*` primitives (e.g. `BaseTable`, `BaseForm`), never as raw markup in screens
 - [ ] Uses established utility functions (`UtilsForm`, `joinTextNoSpace`, etc.)
 - [ ] Strings wrapped in `t()` for i18n
+- [ ] **Every pressable element has its affordances** — see §9a. Tailwind v4 does NOT give a
+      `<button>` a pointer cursor; you have to ask for it
+- [ ] **No destructuring inside a function body** — see §9b. Props are the exception and stay
+      destructured
+- [ ] **Every unwired value carries `BaseMockBadge`, and `grep -rn MOCK src/` finds it** — see §9c
+- [ ] **Below the drawn width the layout does not break** — no horizontal page scroll, no clipped
+      text, `min-w-0` on flex children that truncate — see `11-responsive-defaults.md`
+
+### 9a. Affordance pass (run in the browser, after the component compiles)
+
+The affordance boxes above cannot be confirmed by reading a diff — a button missing its pointer cursor
+reads perfectly in source. Tailwind v4's Preflight sets `cursor: default` on `<button>`, so a v3→v4
+upgrade silently removed the hand cursor from every button in the app and nothing failed.
+
+Run the six-step pass in [`12-interactive-affordances.md`](./12-interactive-affordances.md) §5 with the
+screen open — hover, tab through, check disabled states, measure the smallest hit target — and state in
+one line what you checked and anything you left failing.
+
+### 9b. No destructuring inside a function body
+
+Destructure **props** — that is the component's signature and it stays as it is. Inside the body,
+read through the object instead.
+
+```tsx
+// ✅ Props destructured — the signature IS the contract
+export default function VehicleDetailScreen({ vehicleId }: { vehicleId: number }) {
+  const query = useQueryVehiclePage(vehicleId);
+
+  // ✅ Read through the object. Where the value came from stays on screen.
+  return <VehicleHeroBand device={query.data.detail.device} />;
+}
+```
+
+```tsx
+// ❌ A shadow set of bare names, detached from where they came from
+const { detail, installRecord, lastPosition, connectedTo } = data;
+// …200 lines later, `detail` could be anything, and renaming a backend field
+// no longer shows you every place that reads it.
+```
+
+**Why.** A bare local name loses its provenance. `detail` does not say it came from the page payload,
+so a reader has to scroll back to the destructuring line to find out, and a rename in the API no
+longer surfaces at the call sites — which is exactly the drift §7b exists to prevent. Reading through
+the object keeps the path visible and makes every consumer greppable by field name.
+
+**The one carve-out: a hook's own return.** `const { t } = useTranslation()` and
+`const { register, handleSubmit } = useForm()` stay — those names are the hook's published API, not
+fields of a record, and every one of those libraries documents them that way. Everything else in a
+body — API payloads, records, nested state — is read through.
+
+Framework-mandated shapes are not exceptions to invent: `const { vehicleId } = await params` in a
+Next.js route handler is the documented signature and stays.
+
+### 9c. Mock data is labelled
+
+Mock is scoped to **the field that has no endpoint**, never to the screen and never behind a
+mock/live switch. What is wired renders live and unmarked; what is not renders from the mock — so the
+screen is not blocked — with a `BaseMockBadge` beside it, in every environment. Reuse a backend record
+for the unwired shape where one exists rather than inventing a parallel one.
+
+`grep -rn MOCK src/` must find every site. Full rule: [`13-mock-data.md`](./13-mock-data.md).
 
 ### 10. Documentation Standards
 

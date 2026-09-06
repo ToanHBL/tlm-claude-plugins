@@ -15,11 +15,22 @@ ai/
 │   ├── 05-validation-patterns.md
 │   ├── 06-development-setup.md
 │   ├── 07-ai-workflow-integration.md   # AI/contributor operating manual
-│   └── 08-cross-platform-architecture.md # Web ↔ React Native mapping
+│   ├── 08-cross-platform-architecture.md # Web ↔ React Native mapping
+│   ├── 09-data-listing.md       # Tables, sort, filter, limit/offset paging, four states
+│   ├── 10-images-and-preview.md # Thumbnail → preview modal, no layout shift, visible failures
+│   ├── 11-responsive-defaults.md # One drawn width: build it, and don't break below it
+│   ├── 12-interactive-affordances.md # Cursor, hover, focus ring, hit target — a post-coding pass
+│   ├── 13-mock-data.md          # Label what isn't wired yet; grep -rn MOCK finds every site
+│   ├── 14-e2e-testing.md        # Playwright: the no-failing-request sweep + declared refusals
+│   ├── 15-zod-contract-first.md # Schemas are the source of truth; responses parsed, never `as T`
+│   └── 16-monorepo-turborepo.md # Multi-app products: Turborepo, apps/* + packages/contracts
+├── vendor/
+│   └── ECC-ADOPTION.md          # everything-claude-code review: provenance + what we turned off
 ├── templates/                   # Requirement-intake templates
 │   ├── input-processing-template.md
 │   └── requirement-summary-template.md
 ├── nextjs/
+│   ├── 00-backend-decision.md   # BFF over an existing backend, or backend-first in-app (before the router choice)
 │   ├── page-router/             # Page Router specific rules (Next.js 12-15)
 │   │   ├── 01-architecture.md            # Mode A: static-export SPA
 │   │   ├── 02-routing-structure.md
@@ -299,6 +310,16 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 - **How do I validate forms?** → shared-fe/05-validation-patterns.md
 - **How do I navigate?** → [router]/02-routing-structure.md
 - **How should an AI/new contributor generate code here?** → shared-fe/07-ai-workflow-integration.md
+- **How do I build a list with sort/filter/paging?** → shared-fe/09-data-listing.md
+- **How do I render an image, or a photo preview?** → shared-fe/10-images-and-preview.md
+- **The design only drew one width — what about mobile?** → shared-fe/11-responsive-defaults.md
+- **Did I miss cursor / focus / hit targets?** → shared-fe/12-interactive-affordances.md
+- **How do I show data that has no API yet?** → shared-fe/13-mock-data.md
+- **Should I write an e2e test, and what does it assert?** → shared-fe/14-e2e-testing.md
+- **No Figma, but the feature exists in another repo?** → skills/fe-coding STEP 1.5
+- **How do I type/validate an API response?** → shared-fe/15-zod-contract-first.md
+- **Second app (portal / mobile twin) — same repo or new one?** → shared-fe/16-monorepo-turborepo.md
+- **Does the backend go in this Next.js app or is it a BFF?** → nextjs/00-backend-decision.md
 - **How do I turn a user story / API spec into tasks?** → templates/input-processing-template.md
 - **How do I normalize cURL/JSON into a spec?** → templates/requirement-summary-template.md
 
@@ -326,6 +347,49 @@ For questions or clarifications:
 ---
 
 ## 🔄 Version History
+
+- **v1.7** (2026-09): E2E, sibling-repo UI, and states that get clipped
+  - New `shared-fe/14-e2e-testing.md` — Playwright. Every common page asserts **no undeclared 4xx or
+    5xx**; endpoints that are supposed to refuse assert their **exact** status, because a swallowed
+    403 gets diagnosed as a 502 outage. Seed the session, never drive the login form
+  - New hook `hooks/e2e-watch.mjs` — fires on an edit to a page, layout, route handler or `*Screen`
+    in a project that already has a suite, and asks whether the suite is now wrong. Silent otherwise
+  - `fe-coding` STEP 1.7 — offer e2e **in the plan**, once; never after the code is written
+  - `fe-coding` STEP 1.5 — when there is no Figma and a sibling repo already ships the screen, that
+    UI is the design: match its information order, groupings and labels, but build it with THIS
+    project's conventions. Authority runs Figma → sibling repo's shipped UI → the `09`–`13` defaults
+  - `shared-fe/12` §4b — a hover, focus, visited or active state must not be clipped by an
+    `overflow-hidden` ancestor, painted over by a neighbour, hidden under a sticky bar, or shift the
+    layout by adding a border that was not there at rest
+
+- **v1.6** (2026-09): Responsive, affordances, mock visibility, business context
+  - New `shared-fe/11-responsive-defaults.md` — a design drawn at one width is built at that width
+    AND must not break below it; mobile-first ordering, `flex-wrap` vs `auto-fit` grid, `min-w-0`,
+    tables scroll rather than stack. Never a licence to invent a mobile design that exists in Figma
+  - New `shared-fe/12-interactive-affordances.md` — Tailwind v4's Preflight sets `cursor: default`
+    on `<button>`, so every pressable must ask for the pointer back; plus hover, `focus-visible`,
+    disabled, WCAG 2.2 hit targets, and a six-step pass run with the screen open
+  - New `shared-fe/13-mock-data.md` — mock is scoped to the field that has no endpoint, not the
+    screen; badge in every environment; `grep -rn MOCK src/` finds every site
+  - `fe-coding` STEP 1.6 — business understanding across the repos in `ecosystem-map.md`: draft
+    first, ask 3–5 questions once, persist to `.claude/business-context.md`, recap one line per task
+  - New `vendor/ECC-ADOPTION.md` — review of `everything-claude-code`: provenance, what overlaps,
+    what conflicts, and why nothing was copied (the repo ships no LICENSE)
+
+- **v1.5** (2026-09): Rules for frontend work with no design input
+  - New `shared-fe/09-data-listing.md` — a listing is a `BaseTable`; the server sorts, filters and
+    pages; `limit`/`offset` live in the URL verbatim; filters commit on Apply; four states, with
+    filtered-empty as its own
+  - New `shared-fe/10-images-and-preview.md` — a thumbnail opens a full-size preview; `BaseModal`
+    owns the APG dialog contract once; images reserve their box and fail visibly
+  - `figma-to-code` PHASE 0.5 — a Figma 429 is a wait, not a wall: honour `Retry-After`, full-jitter
+    backoff, chunk by node id, cache to the scratchpad, and a bounded stop condition
+  - Corrected two pagination examples that were still TanStack Query v4 (`keepPreviousData: true`
+    → `placeholderData: keepPreviousData`) and used local state, raw grids and untranslated labels
+  - `shared-fe/07-ai-workflow-integration.md` §9a/§9b/§9c — three passes to run AFTER the code works:
+    pressable affordances (Tailwind v4 stopped giving `<button>` a pointer cursor; plus hover, focus
+    ring, disabled cursor and a 24px hit target), no destructuring inside a function body (props and
+    a hook's own return excepted), and mock data labelled `mock` on screen and `MOCK:` in the code
 
 - **v1.0** (2024-01): Initial finalized knowledge base
   - Merged ai/ and docs/ folder rules
