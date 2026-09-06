@@ -191,7 +191,10 @@ looks right and fails at runtime, so the rule is: read the real file, never infe
   detected shared-package dependency). That map is the cross-project relationship file.
 - **Consumed by** `tlm-fe-coding` STEP 1.5 and reported on by `setup-check.mjs` (a registered repo that has
   gone missing from disk is flagged, since the map then names a source that cannot be opened).
-- **Read-only.** Nothing in this plugin writes to, commits in, or runs anything inside a sibling repo.
+- **Read-only.** Nothing in this plugin edits files in, commits in, or runs project code inside a
+  sibling repo. The only mutations are git-level freshness: `sync`'s clone/fetch and the
+  `ecosystem-pull.mjs` SessionStart hook's detached `git pull --ff-only` (aborts silently on a diverged
+  branch or dirty files).
 
 ## Hooks
 
@@ -202,6 +205,26 @@ Declared in `hooks/hooks.json`, invoked via `${CLAUDE_PLUGIN_ROOT}`:
   apply to this project's stack, and the ecosystem repos already included (with an on-disk check).
   Speaks **only** in a project that runs on the plugin (a `.claude/tlm-plugin/` copy or a `tlm`
   config block exists); silent in every plain repo.
+- **SessionStart (`startup|resume` only) → `update-check.mjs`** — the daily plugin updater. At most
+  once per calendar day (stamp: `~/.claude/tlm-plugin-update-check.json`, keyed by plugin root) it
+  fetches the managed clone at `${CLAUDE_PLUGIN_ROOT}`, and when it is behind upstream: prints the
+  **release notes** (the commit subjects between local HEAD and the remote head — this repo's
+  `Bump x -> y: …` convention makes those the changelog) and **auto-updates** via `git merge
+  --ff-only`, the same fast-forward `/plugin marketplace update` performs. This exists because Claude
+  Code's marketplace auto-sync only ever `git fetch`es a third-party marketplace — it never pulls
+  (anthropics/claude-code#41885) — so without the hook an install goes stale forever. It refuses to
+  touch a dirty or non-fast-forwardable clone (then it only reports and points at `/plugin marketplace
+  update`), exits silently when `CLAUDE_PLUGIN_ROOT` is unset (a bare dev checkout must never be
+  pulled), and never speaks unless an update exists. Skill/`ai/` updates are live immediately;
+  `hooks.json` changes register on the next session.
+- **SessionStart (`startup|resume` only) → `ecosystem-pull.mjs`** — fire-and-forget freshness for the
+  ecosystem repos. `ecosystem.mjs sync` only fetches, so a sibling's working tree — the thing the
+  ecosystem map actually points contract reads at — never advances on its own. Every session this hook
+  spawns a **detached** `git pull --ff-only --quiet` in each registered repo that exists on disk and
+  exits immediately: no behind-check first (the contract is "just trigger the pull"), no waiting on the
+  network, no output ever. `--ff-only` plus git's own working-tree protection means a diverged branch or
+  dirty files make that repo's pull abort silently — never a merge, never a commit. Missing repos are
+  not cloned here (that stays `sync`'s job, and setup-check flags them).
 - **SessionStart → `setup-check.mjs`** — reports incomplete `tlm` config so a workflow skill doesn't fail
   mid-task. **Silent** when there's no config at all (a plain coding repo) or when it's complete; only
   speaks when config exists *and* is incomplete. Also flags the security case where
@@ -259,6 +282,11 @@ echo '{"cwd":"/path/to/some/project"}' | node hooks/setup-check.mjs
 echo '{"cwd":"/path/to/some/project"}' | node hooks/session-brief.mjs   # silent unless the project runs on the plugin
 echo '{"tool_input":{"file_path":"/abs/path/to/File.tsx"}}' | node hooks/lint-fe.mjs
 echo '{"tool_input":{"file_path":"/abs/repo/.claude/tlm-plugin/ai/x.md"}}' | node hooks/vendor-watch.mjs
+# update-check needs CLAUDE_PLUGIN_ROOT pointed at a git clone (it refuses to run without it),
+# and re-runs only once per day — delete ~/.claude/tlm-plugin-update-check.json to force a re-check:
+echo '{}' | CLAUDE_PLUGIN_ROOT=/path/to/managed/clone node hooks/update-check.mjs
+# ecosystem-pull must ALWAYS be silent — it spawns detached ff-only pulls and exits:
+echo '{"cwd":"/path/to/project"}' | node hooks/ecosystem-pull.mjs | wc -c   # expect 0
 # ...and with a handed-over init doc in place, setup-check must speak even with zero config:
 touch /path/to/project/.claude/tlm-init.json && echo '{"cwd":"/path/to/project"}' | node hooks/setup-check.mjs
 
