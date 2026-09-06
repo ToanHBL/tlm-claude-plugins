@@ -178,7 +178,7 @@ reads the token from your project's env, so all you supply is the token:
 
 ## Step 3 — Ticket system  · only if the project tracks tickets
 
-Needed by **`ticket-workflow`**, **`mobile-release-notes`**, **`deployment-checklist`**.
+Needed by **`ticket-workflow`**, **`mobile-release-notes`**, **`deployment-checklist`**, **`ba-ticket`**.
 
 ### 3a. Connect the tool
 
@@ -206,6 +206,9 @@ git log --oneline -80 | grep -oiE '[A-Z]{2,}-[0-9]+' \
       `ready[]` (safe to ship; anything else gets flagged at release time)
 - [ ] **Deployment ticket?** — does one release ticket's notes list what ships?
 - [ ] **Base branch** — `develop` / `main` / `master`
+- [ ] **BA ticket writing (optional)** — `baTemplates` ships team defaults (task `t-86d3tgzn8`,
+      bug `t-86d08309p`); override only if your workspace uses different templates.
+      `defaultListId` (where `ba-ticket` creates tickets) can be set now or on first use.
 
 - [ ] **Verify** — fetch one real ticket by its id and get back its name + status.
 

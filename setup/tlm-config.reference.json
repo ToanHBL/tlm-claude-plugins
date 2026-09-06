@@ -9,7 +9,7 @@
     "for a fillable template and ./SETUP-CHECKLIST.md for the walkthrough."
   ],
 
-  "configVersion": 2,
+  "configVersion": 3,
 
   "changelog": [
     {
@@ -20,6 +20,11 @@
       "version": 2,
       "summary": "tlm.ecosystem added (sibling repos of the same system that Claude may READ while working here). tlm.pluginRepo is now on by default and its vendored copy is the project's LIVE rules source rather than PR staging; prMode defaults to gh.",
       "migration": "Run /project-setup: it installs .claude/tlm-plugin/ if absent, asks once for the other repos of this system (folder path or git URL, cloning what is missing), and writes .claude/ecosystem-map.md. Declining the ecosystem question writes ecosystem.enabled:false — it is never asked again."
+    },
+    {
+      "version": 3,
+      "summary": "ba-ticket skill added (BA/PO turns a chat-described requirement or bug into ONE ClickUp ticket following the team templates — business sections filled, technical sections left for the dev, never auto-creating subtasks). New optional keys: tlm.tickets.baTemplates (task/bug template ids, with team defaults) and tlm.tickets.defaultListId.",
+      "migration": "Nothing to re-ask — both new keys are optional with working defaults. defaultListId is collected and persisted the first time ba-ticket runs without a target list."
     }
   ],
   "$changelogNote": "Append an entry here — { version, summary, migration? } — every time a key under `tlm` is added, renamed, or changes meaning, and bump configVersion to match. hooks/setup-check.mjs reads this to tell a teammate on an older schema exactly what's new; /project-setup reads it to know which fields to add on a sync run. `migration` is optional free text for anything not self-evident from the summary (e.g. a default to apply, or a value that must be re-asked).",
@@ -127,8 +132,8 @@
 
     "clickup": {
       "required": "when tlm.tickets.enabled === true && tlm.tickets.system === 'clickup'",
-      "purpose": "Read/update tickets, post comments, attach QA evidence.",
-      "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist"],
+      "purpose": "Read/update tickets, post comments, attach QA evidence, create BA-written tickets.",
+      "usedBy": ["ticket-workflow", "release-notes", "deployment-checklist", "ba-ticket"],
       "secret": false,
       "detectBy": "tool name matches mcp__*ClickUp*__clickup_get_task",
       "install": {
@@ -421,6 +426,19 @@
         "type": "string",
         "default": "en",
         "description": "Language for plan files and ticket comments, regardless of the chat language."
+      },
+      "baTemplates": {
+        "type": "object",
+        "required": false,
+        "description": "ClickUp task template ids whose section structure the ba-ticket skill mirrors when drafting a ticket. `task` for features/change requests, `bug` for defects. The MCP cannot instantiate a template, so the skill reproduces the sections in the description — these ids are the canonical reference for what those sections are.",
+        "default": { "task": "t-86d3tgzn8", "bug": "t-86d08309p" },
+        "source": "team lead — ClickUp Template Center → the template's templateId in its URL"
+      },
+      "defaultListId": {
+        "type": "string",
+        "required": false,
+        "description": "ClickUp list id where ba-ticket creates new tickets when the user doesn't name one. If absent the skill asks (offering real list names from the workspace hierarchy) and offers to persist the answer.",
+        "source": "ask the user on first ba-ticket run, then persist"
       }
     },
 
@@ -635,6 +653,12 @@
       "cli": ["git (always present); gh only if tlm.pluginRepo.prMode === 'gh'"],
       "secrets": [],
       "ifMissing": "Always runs — it has no capability companion. Reads ai/ and skills/ from the plugin, plus the project's CLAUDE.md and memory. The PLUGIN scope is the only part that needs setup: it edits the vendored copy (tlm.pluginRepo.vendorDir) and opens a PR upstream via plugin-pr.mjs. If tlm.pluginRepo is absent or enabled:false, do NOT offer plugin scope — offer only project (CLAUDE.md) and memory scopes, and tell the user to run /project-setup if they want contribute-back. If git push fails (no upstream access), degrade: leave the branch/commit and tell the user how to push + open the PR by hand. Never edit ${CLAUDE_PLUGIN_ROOT} in place — a marketplace update wipes it."
+    },
+    "ba-ticket": {
+      "mcp": ["<the MCP for tlm.tickets.system — currently clickup only>"],
+      "config": ["tlm.tickets.system", "tlm.tickets.workspaceId", "tlm.tickets.baTemplates (has defaults)", "tlm.tickets.defaultListId (optional)"],
+      "secrets": [],
+      "ifMissing": "tickets is an all-or-nothing capability (see companions). If the tracker MCP is unreachable or tlm.tickets.enabled is false, stop and point to /project-setup — no draft-only fallback. A missing defaultListId alone never blocks: ask which list (offer real names from the workspace hierarchy) and offer to persist it."
     },
     "deployment-checklist": {
       "mcp": ["<the MCP for tlm.tickets.system>"],

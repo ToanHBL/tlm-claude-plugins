@@ -19,6 +19,7 @@ tlm-claude-plugins/
 │   │   └── ecosystem.mjs            # register / clone / index the sibling repos
 │   ├── figma-to-code/           # Figma design → screen (hard-stops without the design)
 │   ├── ticket-workflow/         # ticket → branch → plan → implement → sync back
+│   ├── ba-ticket/               # BA/PO: requirement/bug in chat → ONE templated ClickUp ticket
 │   ├── mobile-release-notes/    # commits → plain-language build notes → Slack draft (mobile only)
 │   ├── deployment-checklist/    # release check: tickets, services, migrations
 │   └── spec-driven/             # drives OpenSpec (propose→apply→archive); offered per ticket
@@ -64,6 +65,7 @@ genuinely needed — not for modernness.
 | **rule-capture** | corrective feedback with a reason attached | — |
 | **figma-to-code** | a figma.com link | Framelink MCP (**hard-stops** without it) |
 | **ticket-workflow** | `TLM-1234`, a ticket URL, "work on task" | ticket tracker MCP |
+| **ba-ticket** | a requirement/bug described in chat + "tạo ticket", "log bug", "create a ticket" | ClickUp MCP |
 | **mobile-release-notes** | a commit range, "release notes" | tracker + Slack; mobile projects only |
 | **deployment-checklist** | "release check", "deployment checklist" | ticket tracker |
 | **spec-driven** | "openspec", "spec-driven", `/opsx:*`, an `openspec/` dir | OpenSpec CLI via `npx` (Node ≥ 20.19) |

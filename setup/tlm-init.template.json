@@ -36,7 +36,7 @@
 
   "$tlmInit": {
     "templateVersion": 1,
-    "configVersion": 2,
+    "configVersion": 3,
     "createdBy": "<<FILL: your name — shown to the teammate so they know the file is yours>>",
     "createdFor": "<<FILL: which project / team this is for>>",
     "secrets": "per-user",
@@ -102,7 +102,9 @@
       "hasDeploymentTicket": true,
       "planDir": "_docs",
       "branchPrefixes": { "bug": "fix", "refactor": "refactor", "default": "feat" },
-      "commentLanguage": "en"
+      "commentLanguage": "en",
+      "baTemplates": { "task": "t-86d3tgzn8", "bug": "t-86d08309p" },
+      "defaultListId": "<<FILL: ClickUp list id where ba-ticket creates new tickets — optional, asked on first run if absent>>"
     },
 
     "//chat": "PHASE 1 question 3b. sendMode stays 'draft' — a human reviews before anything reaches a shared channel. One channel entry per app; `app` matches a project.apps[].name.",
