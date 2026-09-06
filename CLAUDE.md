@@ -190,6 +190,11 @@ looks right and fails at runtime, so the rule is: read the real file, never infe
 
 Declared in `hooks/hooks.json`, invoked via `${CLAUDE_PLUGIN_ROOT}`:
 
+- **SessionStart → `session-brief.mjs`** — the pre-work brief: plugin version (installed vs the
+  vendored copy, with a drift note when they differ), the rules root and which `ai/` packs + skills
+  apply to this project's stack, and the ecosystem repos already included (with an on-disk check).
+  Speaks **only** in a project that runs on the plugin (a `.claude/tlm-plugin/` copy or a `tlm`
+  config block exists); silent in every plain repo.
 - **SessionStart → `setup-check.mjs`** — reports incomplete `tlm` config so a workflow skill doesn't fail
   mid-task. **Silent** when there's no config at all (a plain coding repo) or when it's complete; only
   speaks when config exists *and* is incomplete. Also flags the security case where
@@ -203,7 +208,7 @@ Declared in `hooks/hooks.json`, invoked via `${CLAUDE_PLUGIN_ROOT}`:
   `.claude/tlm-plugin/` (the project's live rules copy) and reminds Claude to commit it and offer the
   review→PR. Silent everywhere else.
 
-**All three delegate.** Before doing any work each hook looks for the same hook inside the target
+**All of them delegate.** Before doing any work each hook looks for the same hook inside the target
 project's `.claude/tlm-plugin/hooks/`, and if it finds one, re-execs it with the identical stdin payload
 and exits with its status (`delegateToVendored()`; `TLM_HOOK_VENDORED=1` stops the recursion, and a
 vendored copy that fails to start falls through to the installed one). Without this, a rule added to a
@@ -244,6 +249,7 @@ Everything runs on `node` + `git` alone, on Windows, macOS and Linux alike. The 
 ```bash
 # Verify a hook by piping it the payload shape it expects (all read stdin JSON):
 echo '{"cwd":"/path/to/some/project"}' | node hooks/setup-check.mjs
+echo '{"cwd":"/path/to/some/project"}' | node hooks/session-brief.mjs   # silent unless the project runs on the plugin
 echo '{"tool_input":{"file_path":"/abs/path/to/File.tsx"}}' | node hooks/lint-fe.mjs
 echo '{"tool_input":{"file_path":"/abs/repo/.claude/tlm-plugin/ai/x.md"}}' | node hooks/vendor-watch.mjs
 # ...and with a handed-over init doc in place, setup-check must speak even with zero config:
