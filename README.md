@@ -24,6 +24,7 @@ them all.
 | **`/tlm-mobile-release-notes`** | A commit range → plain-language build notes for testers, posted as a draft. Mobile only. | a commit range, "release notes" |
 | **`/tlm-deployment-checklist`** | Compares your branch against a base, finds every ticket in scope, enriches each from the tracker, and lists the services to deploy and migrations to run. | "release check", "deployment checklist" |
 | **`/tlm-spec-driven`** | Agrees the spec before any code, driving OpenSpec's propose → apply → archive loop. Offered per ticket, never forced. | "openspec", `/opsx:*`, an `openspec/` directory |
+| **`/tlm-qa-workflow`** | Entry point for the QA harness: ticket → checklist → test-case Excel → run UI/API → ClickUp bugs → verify production. Installs the harness from the vendored copy when the repo doesn't have it, then routes to the right `/qa-*` stage. | "test ticket này", "viết test case", "chạy test", "verify prod", any `/qa-*` ask |
 
 ### The router
 
@@ -66,6 +67,21 @@ it, in `.claude/harness.json`:
 ```
 
 That excuses the plan gate only; a path in `sensitivePaths` stays reviewed.
+
+## QA harness (telemax-qa-skill)
+
+[telemax-qa-skill](https://github.com/dungvv-hblab-hbg/telemax-qa-skill) is **copied** into
+`vendor/telemax-qa-skill` — the team's QA pipeline for Claude Code: eight `/qa-*` commands, five
+subagents and seven skills driving *ticket → checklist → test-case Excel → run (UI/API) → ClickUp
+bug → verify production*, with three human review stops built in.
+
+Like z-harness it is a copy, not a submodule, and its scripts (bash + Python) are deliberately not
+wired into this plugin's `hooks.json`. Unlike z-harness it **does** get a bridge:
+[`/tlm-qa-workflow`](skills/tlm-qa-workflow/SKILL.md) detects whether the harness is installed in the
+current repo, installs it from the vendored copy when it is not (additive merge into an existing
+`.claude/`, never `install.sh --force`), and routes QA requests to the right `/qa-*` stage. Read
+[`vendor/telemax-qa-skill/PROVENANCE.md`](vendor/telemax-qa-skill/PROVENANCE.md) before changing
+anything in there, and the harness's own [README](vendor/telemax-qa-skill/README.md) for the manual.
 
 ## Install
 

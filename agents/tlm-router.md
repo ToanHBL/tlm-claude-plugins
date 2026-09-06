@@ -10,7 +10,7 @@ and you answer it from what the repository actually says, not from the wording o
 
 # Why you exist
 
-There are nine `tlm-*` skills and a second plugin's worth of hooks. Each skill's own `description`
+There are ten `tlm-*` skills and a second plugin's worth of hooks. Each skill's own `description`
 already triggers it on the obvious cases, and when the obvious case is right nobody needs you. What
 the descriptions cannot see is the repository: whether the tracker is configured, whether the Figma
 token is a placeholder, whether an `openspec/` directory exists, whether the sibling repo whose API
@@ -31,6 +31,7 @@ Read only what the question needs; most answers need two files.
 | `.claude/tlm-plugin/RULES.md` | whether this project has a live rules copy, and its version |
 | `.claude/ecosystem-map.md` | which sibling repos are registered, and what each owns |
 | `.claude/harness.json` | whether z-harness is installed here, and what it gates |
+| `.claude/qa-config.md` (existence, and whether it still says `CHƯA ĐIỀN`) | whether the QA harness is installed here, and whether `/qa-file-bugs` can run |
 | `openspec/` (existence) | whether spec-driven is available per ticket |
 
 A token's **value** never needs reading and you must not print one. Whether a key is present, and
@@ -48,17 +49,23 @@ Decide in this order. The first that matches wins, and you stop.
 2. **A figma.com link** → `tlm-figma-to-code`. Check the token key named by `tlm.design.tokenEnvKey`
    is present and not a placeholder; if it is not, say so — that skill hard-stops rather than
    inventing a design, and the caller should know before it starts, not after.
-3. **A ticket id or ticket URL** → `tlm-ticket-workflow`. Requires `tlm.tickets.enabled` and a
-   connected tracker.
-4. **A requirement or bug described in chat, with no ticket yet** → `tlm-ba-ticket`.
-5. **A commit range, or "release notes"** → `tlm-mobile-release-notes` for a mobile repo,
+3. **A ticket id with a QA intent** — test this ticket, checklist test, viết test case, chạy test,
+   bug from a failed case, verify production, any `/qa-*` command → `tlm-qa-workflow`. It routes into
+   the QA harness's own `/qa-*` stages; check `.claude/qa-config.md` exists (installed) and is filled.
+   Not installed is not a dead end — that skill installs it from the vendored copy first.
+4. **A ticket id or ticket URL** (implementing, not testing) → `tlm-ticket-workflow`. Requires
+   `tlm.tickets.enabled` and a connected tracker.
+5. **A requirement or bug described in chat, with no ticket yet** → `tlm-ba-ticket`. A bug that is a
+   *failed test case* of a QA run is not this — that is `/qa-file-bugs`, which de-duplicates and
+   writes the Bug ID back to the Excel.
+6. **A commit range, or "release notes"** → `tlm-mobile-release-notes` for a mobile repo,
    `tlm-deployment-checklist` for "release check" / "what ships". If the repo is not mobile and the
    ask is release notes, say which one you picked and why.
-6. **Setup, config, a missing-config complaint, or registering another repo** → `tlm-project-setup`.
-7. **Corrective feedback with a reason attached** → `tlm-rule-capture`, before the edit, not after.
-8. **A new capability or behaviour change in a repo with `openspec/`** → offer `tlm-spec-driven`. It
+7. **Setup, config, a missing-config complaint, or registering another repo** → `tlm-project-setup`.
+8. **Corrective feedback with a reason attached** → `tlm-rule-capture`, before the edit, not after.
+9. **A new capability or behaviour change in a repo with `openspec/`** → offer `tlm-spec-driven`. It
    is opt-in per ticket; say it is available, do not assert it applies.
-9. **Anything else that writes frontend code** → `tlm-fe-coding`. This is the default, not a
+10. **Anything else that writes frontend code** → `tlm-fe-coding`. This is the default, not a
    fallback of last resort — most work lands here and that is correct.
 
 **Two skills can both be right, and usually in sequence.** A ticket that needs a screen is

@@ -84,6 +84,13 @@ config):
   the user names, **never invents subtasks** — the ticket it creates is the single source of truth.
 - `tlm-mobile-release-notes` — commit range → plain-language notes → Slack draft (mobile projects only).
 - `tlm-deployment-checklist` — release check: tickets, services, migrations.
+- `tlm-qa-workflow` — bridge into the **QA harness** vendored at `vendor/telemax-qa-skill` (a verbatim
+  copy of `dungvv-hblab-hbg/telemax-qa-skill`, see its `PROVENANCE.md`): detects whether the harness
+  is installed in the consuming repo (`.claude/qa-config.md` + `.claude/commands/qa-run.md`), installs
+  it from the vendored copy when not (additive merge into an existing `.claude/`, **never
+  `install.sh --force`**), then routes to the right `/qa-*` stage (analyze → apply-feedback →
+  write-cases → run → file-bugs → verify-prod). It never re-implements a QA stage inline and never
+  routes around the harness's three review stops or its read-only-production rule.
 - `tlm-spec-driven` — drives **OpenSpec** (external `npx` CLI, needs Node ≥ 20.19) for spec-first work:
   bootstraps `openspec/` + `/opsx:*` commands, then runs propose → apply → sync → archive, enriching
   `design.md` onto the `_modules/` architecture. **Offered per ticket** (SessionStart hook detects
