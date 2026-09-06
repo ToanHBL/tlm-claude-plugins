@@ -425,10 +425,44 @@ invisible to QC, who then can't tell "empty by design" from "silently broken".
 </Col>
 ```
 
-**Conditional mid-layout blocks reserve space.** Error banners, validation messages and hints that sit
-**between** other content must not mount/unmount as a whole — the height change shifts everything below
-(flicker). Always render the container with a token-backed `min-height` and toggle only the content
-inside (transparent background when inactive). A block at the **end** of a layout is exempt.
+**Conditional mid-layout blocks animate in and out — they do not reserve space.** An error banner, a
+validation message or a hint that sits **between** other content still must not *snap* the layout, but
+the fix is a transition, not a permanent hole. Reserving a `min-height` for something that is usually
+absent buys a stable layout at the price of dead space on every screen where nothing is wrong — which
+is most of them, most of the time.
+
+So: mount and unmount as normal, and give the change a duration. `grid-template-rows: 0fr → 1fr` is
+the one that animates a genuinely auto height without hard-coding one; `max-height` works when you can
+name a ceiling. Pair it with opacity so the content fades rather than sliding out of a clipped box.
+
+```tsx
+// ✅ Collapses to nothing when there is no message, and moves rather than jumps.
+<Col
+  aria-live='polite'
+  className={clsx(
+    'grid overflow-hidden transition-[grid-template-rows,opacity] duration-200 ease-out',
+    message ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+  )}
+>
+  <Col className='min-h-0'>
+    <BaseAlert message={message} />
+  </Col>
+</Col>
+```
+
+```tsx
+// ❌ A permanent gap on every screen where nothing is wrong.
+<Col className='min-h-banner'>{message ? <BaseAlert message={message} /> : null}</Col>
+
+// ❌ No transition — the content below jumps the instant the message appears.
+{message ? <BaseAlert message={message} /> : null}
+```
+
+**Respect `prefers-reduced-motion`**: `motion-reduce:transition-none`, so the change is instant for
+anyone who asked for that rather than removed. And keep the transition on **layout-safe** properties —
+animating `height`/`grid-template-rows` on a long list is the one case where reserving space, or
+virtualising, is still the better trade. A block at the **end** of a layout needs neither: nothing
+sits below it to shift.
 
 ### 5. Styling
 
