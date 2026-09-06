@@ -1,6 +1,6 @@
 {
   "name": "tlm-claude-plugins",
-  "version": "2.10.0",
+  "version": "2.10.1",
   "description": "Frontend coding conventions plus the workflow around them. One tlm-fe-coding skill detects the stack (Next.js App/Page Router, React Native Expo/CLI, Next.js API + Prisma) and applies the _modules architecture, component hierarchy, Link-only navigation, function minimalism, visible empty states and Zod/React-Hook-Form validation. Workflow skills cover project setup, Figma-to-code, ticket workflow, BA/PO ticket writing (requirement → templated ClickUp ticket), mobile release notes, deployment checks, spec-driven (OpenSpec), and capturing corrections as rules. Each project keeps its own live, committed copy of the rules (edit it, review the diff, PR it back) and can register the other repos of its system so cross-repo contracts are read from the real files instead of guessed. Bundles the context7 and Framelink Figma MCP servers so they load on install.",
   "keywords": [
     "nextjs",

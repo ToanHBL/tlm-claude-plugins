@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Frontend engineering skills & rules marketplace.",
-    "version": "2.10.0"
+    "version": "2.10.1"
   },
   "plugins": [
     {
       "name": "tlm-claude-plugins",
       "source": "./",
       "description": "Frontend coding conventions (Next.js App/Page Router, React Native Expo/CLI) plus the workflow around them — project setup, Figma-to-code, ticket workflow, BA ticket writing, mobile release notes, deployment checks, rule capture, spec-driven (OpenSpec). Bundles the context7 + Framelink Figma MCP servers.",
-      "version": "2.10.0",
+      "version": "2.10.1",
       "category": "development",
       "keywords": [
         "nextjs",
