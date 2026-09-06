@@ -1,9 +1,9 @@
 ---
 name: project-setup
-description: Scan this project for missing workflow-skill config, ask the gating questions in ONE round, then present a single fill-in form for every value the user must supply — each with instructions on where to get it — and write .claude/settings.local.json. Also the repair path when a skill reports missing or broken config. Also installs this project's live rules copy (.claude/tlm-plugin/) and registers the OTHER repos of the system this project must read — a backend it calls, a shared package, a web/mobile twin — cloning them when given a git URL and writing .claude/ecosystem-map.md. TRIGGER whenever the user says "project setup", "setup config", "setup mcp", "config skill", "thiếu config", "setup dự án", "cấu hình mcp", "add repo", "thêm repo", "link project khác", "ecosystem", "workspace", when a workflow skill reports a missing tlm config, or when onboarding this plugin into a new repo. ALSO the handover path: "/project-setup init" applies a pre-filled init doc (.claude/tlm-init.json) the project lead sent, so a teammate is asked only for what a file cannot carry — TRIGGER on "init", "project-setup init", "setup sẵn", "file init", "onboard", "handover", or when the user pastes a tlm-init JSON.
+description: Scan this project for missing workflow-skill config, ask the gating questions in ONE round, then present a single fill-in form for every value the user must supply — each with instructions on where to get it — and write .claude/settings.local.json. Also the repair path when a skill reports missing or broken config. Also installs this project's live rules copy (.claude/tlm-plugin/) and registers the OTHER repos of the system this project must read — a backend it calls, a shared package, a web/mobile twin — cloning them when given a git URL and writing .claude/ecosystem-map.md. TRIGGER whenever the user says "project setup", "setup config", "setup mcp", "config skill", "thiếu config", "setup dự án", "cấu hình mcp", "add repo", "thêm repo", "link project khác", "ecosystem", "workspace", when a workflow skill reports a missing tlm config, or when onboarding this plugin into a new repo. ALSO the starter path: on an empty repo, offers the house Turborepo starter (apps/* + packages/contracts + turbo.json) — TRIGGER on "new project", "dự án mới", "starter", "scaffold", "turborepo", "monorepo", "bootstrap project". ALSO the handover path: "/project-setup init" applies a pre-filled init doc (.claude/tlm-init.json) the project lead sent, so a teammate is asked only for what a file cannot carry — TRIGGER on "init", "project-setup init", "setup sẵn", "file init", "onboard", "handover", or when the user pastes a tlm-init JSON.
 ---
 
-Configure this project for the workflow skills (`figma-to-code`, `ticket-workflow`,
+Configure this project for the workflow skills (`figma-to-code`, `ticket-workflow`, `ba-ticket`,
 `mobile-release-notes`, `deployment-checklist`), install its **live rules copy**, and register the
 **other repos of this system** it needs to read — with **one round of questions and one form**:
 
@@ -214,6 +214,37 @@ that **drive the rest of this skill**:
   `still needed` row. That is the safe outcome; never "helpfully" import a marker.
 
 Finish the doc off in PHASE 5 (`init.mjs consume`) — **required** if it carried a real token.
+
+---
+
+## PHASE 0.8 — EMPTY REPO: OFFER THE TURBOREPO STARTER
+
+Runs only when PHASE 0 found **no app to configure** — no `package.json` at the root, or a bare repo
+with nothing but git/docs. Setting up config for an app that doesn't exist yet is backwards; the useful
+move is to scaffold the app first.
+
+**Ask, don't assume** (fold into the PHASE 1 question round when one is happening anyway):
+
+> This repo is empty. Scaffold the house **Turborepo starter** — `apps/web` (Next.js) +
+> `packages/contracts` (Zod schemas + fixtures) + `turbo.json` pipeline? Products here tend to grow a
+> second app (a portal, a mobile twin), and starting in the workspace layout costs nothing now while a
+> later split is a rewrite.
+
+- **Yes** → scaffold exactly the layout in `ai/shared-fe/16-monorepo-turborepo.md` §"Starter contents":
+  root `package.json` (workspaces + turbo scripts, pinned `packageManager`), `turbo.json`,
+  `packages/contracts` (exports `.` and `./fixtures`, Zod only), `apps/web` per the chosen stack's
+  rules (`_modules/`, thin routing), one root lockfile, one `.gitignore`. Then continue the normal
+  phases **inside that layout** — the rules copy (PHASE 1.5) still installs at the repo root
+  `.claude/tlm-plugin/`.
+- **No / single-app by explicit choice** → scaffold a plain app and record the decision in
+  `.claude/codebase-map.md` (`layout: single-app — team choice <date>`), so the next session doesn't
+  re-ask.
+- **Existing non-empty repo** → this phase is silent. Never restructure a working repo into `apps/*`
+  uninvited; that migration is its own task the user must ask for.
+
+The backend question (BFF over an existing backend vs. in-app server API — `ai/nextjs/00-backend-decision.md`)
+is decided by PHASE 1's ecosystem answer: a registered `role: backend` repo ⇒ BFF; none ⇒ in-app.
+Record it in `.claude/codebase-map.md` either way.
 
 ---
 
