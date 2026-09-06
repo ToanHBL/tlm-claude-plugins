@@ -1,5 +1,5 @@
 ---
-name: mobile-release-notes
+name: tlm-mobile-release-notes
 description: Build a release note for a MOBILE app build (React Native, Expo, or Flutter) from a range of git commits — reads the diffs for root cause, pulls the linked tickets for the user-reported symptoms, writes numbered plain-language items for testers and end users, collects the iOS/Android build numbers and install link, then posts it as a DRAFT to the release chat channel. Mobile only. TRIGGER when the user gives a commit hash or range and asks for release notes for a build, or says "release notes", "changelog", "what's new", "build notes", "summarize changes for testers", "tổng hợp changes", "tóm tắt thay đổi cho build", "note bản build".
 ---
 
@@ -39,7 +39,7 @@ ls pubspec.yaml 2>/dev/null && echo "flutter"                            # Flutt
 
 **If it's a web project** (Next.js and nothing mobile), say so and stop — this skill's whole shape
 (TestFlight numbers, Android build numbers, install links) doesn't fit a web deploy. Offer
-`/deployment-checklist` instead, which is what web releases actually need. A **monorepo** containing
+`/tlm-deployment-checklist` instead, which is what web releases actually need. A **monorepo** containing
 both is fine: scope to the mobile app's path and carry on.
 
 **2. Config.** Uses `tickets.system` + `tickets.idPattern` + `tickets.urlTemplate` (to link each item),
@@ -189,7 +189,7 @@ Only mention the rows that actually changed in the range.
 
 ## RULES
 
-- **Mobile only.** Web-only project → stop and point at `/deployment-checklist`.
+- **Mobile only.** Web-only project → stop and point at `/tlm-deployment-checklist`.
 - The note is **English** and **numbered**, always.
 - When a ticket already has release-note copy, **copy it verbatim** — don't rewrite it.
 - Never send directly to a release channel without explicit per-run confirmation.

@@ -32,18 +32,18 @@ push") is deliberately expressed in up to three places, each with a different jo
 | **Hooks** | `hooks/*.mjs` | Mechanical enforcement. `lint-fe.mjs` re-checks the subset of hard rules that are pattern-detectable and feeds hits back to Claude; the installed hooks delegate to a project's vendored copies. | Only rules with a low false-positive rate. |
 | **Config contract** | `setup/**` | The `tlm` config schema that skills read from a *consuming* project. Documentation, not live config. | — |
 
-`fe-coding/SKILL.md` is the canonical example: STEP 2 is the shared base (every stack), STEP 3 the
+`tlm-fe-coding/SKILL.md` is the canonical example: STEP 2 is the shared base (every stack), STEP 3 the
 per-stack hard rules, each ending in `→ ai/<stack>/…` pointers to the deep layer.
 
 ### Consequence for editing rules — keep the layers in sync
 
 When you add or change a hard rule, propagate it across the layers it belongs to (this is what the
-`rule-capture` skill formalizes):
+`tlm-rule-capture` skill formalizes):
 
 1. **Deep rule → `ai/`** — `ai/shared-fe/` if cross-stack, else `ai/<stack>/06-hard-rules.md`. Match the
    neighbours' shape: rule, why, wrong/correct examples, exceptions. **Always include the reason** — the
    failure story is what makes a rule stick.
-2. **Inline short form → the matching section of `skills/fe-coding/SKILL.md`** — *only* if it's critical
+2. **Inline short form → the matching section of `skills/tlm-fe-coding/SKILL.md`** — *only* if it's critical
    enough to need to hold without a second read. Be strict; that file is useful only while it's short.
 3. **Mechanical check → `hooks/lint-fe.mjs`** — only if it is reliably pattern-detectable (see the existing
    `scan` calls and their per-file exemptions). In a consuming project this lands in its vendored copy and
@@ -55,14 +55,14 @@ contradicting rule too, don't leave both versions standing.
 
 ## The skills
 
-`fe-coding` is the **single entry point for all frontend coding** — it detects the stack (config →
+`tlm-fe-coding` is the **single entry point for all frontend coding** — it detects the stack (config →
 auto-detect → ask), applies the shared `_modules/` base, then layers the stack's hard rules. STEP 1.5 is
 the cross-repo gate: when the task touches another repo of the system it reads `.claude/ecosystem-map.md`
 and opens the real contract there rather than inventing one. The rest
 are workflow skills, tracker-agnostic (ClickUp / Jira / Linear / Azure DevOps / GitHub, resolved from
 config):
 
-- `project-setup` — scans missing config, one form, writes `.claude/settings.local.json`. Also: applies a
+- `tlm-project-setup` — scans missing config, one form, writes `.claude/settings.local.json`. Also: applies a
   handed-over **init doc** when there is one (PHASE 0.5, see below), offers the **Turborepo starter** on
   an empty repo (PHASE 0.8 → `ai/shared-fe/16-monorepo-turborepo.md`: `apps/*` + `packages/contracts` +
   `turbo.json`), installs
@@ -70,25 +70,25 @@ config):
   (PHASE 1.6 → `ecosystem.mjs` → `.claude/ecosystem-map.md`), and scans the project's **own** rules/specs
   (`CLAUDE.md`, `.cursorrules`, `.claude/rules`, `openspec/`, lint/tsconfig), cataloguing them into
   `.claude/codebase-map.md` — the house rules **defer to an explicit project rule where they conflict**,
-  never silently override it (persistent overrides go through `rule-capture`).
-- `rule-capture` — corrective feedback → classify (NEW / GAP / CORRECTION / ONE-OFF) → ask → persist.
+  never silently override it (persistent overrides go through `tlm-rule-capture`).
+- `tlm-rule-capture` — corrective feedback → classify (NEW / GAP / CORRECTION / ONE-OFF) → ask → persist.
   A house rule is written into the project's **live rules copy** — in effect immediately — then
   **reviewed (`plugin-pr.mjs diff`) and shipped by PR** (see "Where the rules live" below).
-- `figma-to-code` — Figma link → screen; **hard-stops** if the Framelink MCP is missing/unauthorized
+- `tlm-figma-to-code` — Figma link → screen; **hard-stops** if the Framelink MCP is missing/unauthorized
   (never approximates a design from a frame name or screenshot).
-- `ticket-workflow` — ticket → branch → plan → implement → sync.
-- `ba-ticket` — BA/PO writing pass: requirement or bug described in chat → **one** ClickUp ticket
+- `tlm-ticket-workflow` — ticket → branch → plan → implement → sync.
+- `tlm-ba-ticket` — BA/PO writing pass: requirement or bug described in chat → **one** ClickUp ticket
   following the team's task/bug templates (`tlm.tickets.baTemplates`). Fills the business sections
   (user story, description, reproduce steps, test scenarios); technical sections (codebase
   exploration, migration/database) stay as placeholders for the dev. Links related/parent tickets
   the user names, **never invents subtasks** — the ticket it creates is the single source of truth.
-- `mobile-release-notes` — commit range → plain-language notes → Slack draft (mobile projects only).
-- `deployment-checklist` — release check: tickets, services, migrations.
-- `spec-driven` — drives **OpenSpec** (external `npx` CLI, needs Node ≥ 20.19) for spec-first work:
+- `tlm-mobile-release-notes` — commit range → plain-language notes → Slack draft (mobile projects only).
+- `tlm-deployment-checklist` — release check: tickets, services, migrations.
+- `tlm-spec-driven` — drives **OpenSpec** (external `npx` CLI, needs Node ≥ 20.19) for spec-first work:
   bootstraps `openspec/` + `/opsx:*` commands, then runs propose → apply → sync → archive, enriching
   `design.md` onto the `_modules/` architecture. **Offered per ticket** (SessionStart hook detects
   `openspec/` and reminds Claude to ask); applied only if the user agrees, else the normal skills run.
-  Every OpenSpec CLI command is announced first for transparency. Degrades to `fe-coding`, never a
+  Every OpenSpec CLI command is announced first for transparency. Degrades to `tlm-fe-coding`, never a
   hard stop. Config: `tlm.specDriven` in `setup/tlm-config.reference.json`.
 
 ## The `tlm` config contract
@@ -103,10 +103,10 @@ authoritative dependency contract and its **enforcement rule**: a **baseline** (
 is always expected, and each capability's companions are **required-by-capability** — a capability is
 **all-or-nothing**, either `enabled:true` with every companion installed *and* verified, or
 `enabled:false`. A workflow skill does **not** run a half-configured capability: it stops and points the
-user to `/project-setup` to finish setup or turn the capability off — no degraded "local-only" mode.
-Coding skills (`fe-coding`, `rule-capture`) have no capability companions and always run, even with zero
-config. `figma-to-code` is the hardest stop (no deliverable without the design); `spec-driven` is the
-one that still degrades (opt-in per ticket, falls back to `fe-coding`).
+user to `/tlm-project-setup` to finish setup or turn the capability off — no degraded "local-only" mode.
+Coding skills (`tlm-fe-coding`, `tlm-rule-capture`) have no capability companions and always run, even with zero
+config. `tlm-figma-to-code` is the hardest stop (no deliverable without the design); `tlm-spec-driven` is the
+one that still degrades (opt-in per ticket, falls back to `tlm-fe-coding`).
 
 ## Where the rules live (vendored copy = live source)
 
@@ -114,7 +114,7 @@ The plugin installs read-only under `${CLAUDE_PLUGIN_ROOT}` — a Claude Code **
 `/plugin marketplace update` overwrites**. Editing a rule there is a dead end: lost on the next update,
 never seen by the team. So since **v2.5.0** a consuming project keeps its own copy and runs on it:
 
-1. **Install** — `project-setup` (PHASE 1.5, done by default) copies the plugin's editable subtrees
+1. **Install** — `tlm-project-setup` (PHASE 1.5, done by default) copies the plugin's editable subtrees
    (`skills/ ai/ hooks/ setup/`) into the consuming repo at `.claude/tlm-plugin/` (committed) and records
    `tlm.pluginRepo`. Deliberately **not** `.claude/skills/` — that path would double-register skill names
    against the installed plugin.
@@ -122,11 +122,11 @@ never seen by the team. So since **v2.5.0** a consuming project keeps its own co
    hooks **delegate** to the hooks there (`delegateToVendored()` in `hooks/lib/hook-io.mjs`, guarded by
    `TLM_HOOK_VENDORED` against recursion). A rule added there — including a new `scan()` in `lint-fe.mjs`
    — is enforced from the next turn, in that repo only.
-3. **Edit** — `rule-capture` (house-rule scope) writes into the copy, same layering as always
-   (`ai/` deep rule + optional `fe-coding/SKILL.md` short form + checklist line + optional lint rule).
+3. **Edit** — `tlm-rule-capture` (house-rule scope) writes into the copy, same layering as always
+   (`ai/` deep rule + optional `tlm-fe-coding/SKILL.md` short form + checklist line + optional lint rule).
 4. **Detect** — the `vendor-watch.mjs` PostToolUse hook notices any edit under `.claude/tlm-plugin/` and
    reminds Claude to commit it *and* offer to ship it.
-5. **Review** — `node <rulesRoot>/skills/rule-capture/plugin-pr.mjs diff` mirrors the copy onto a fresh
+5. **Review** — `node <rulesRoot>/skills/tlm-rule-capture/plugin-pr.mjs diff` mirrors the copy onto a fresh
    checkout of upstream and prints the diff. No writes, no push. This output goes to the user, and their
    go-ahead is required before step 6 — it is the only gate between a stray edit and the whole team.
 6. **Ship** — `plugin-pr.mjs open <slug>` clones the upstream (`tlm.pluginRepo`), mirrors the subtrees
@@ -140,9 +140,9 @@ The config contract is `tlm.pluginRepo` in `setup/tlm-config.reference.json`.
 > machine whose `~/.ssh/config` defines it. On any other machine `plugin-pr.mjs preflight` fails at the
 > clone — the fix is to store the working URL in that project's `tlm.pluginRepo.upstreamRemote`.
 
-## The init doc (handover into `project-setup`)
+## The init doc (handover into `tlm-project-setup`)
 
-Most of what `project-setup` asks is a **team decision made once**: the tracker, its real status
+Most of what `tlm-project-setup` asks is a **team decision made once**: the tracker, its real status
 vocabulary, the base branch, the release channel, the sibling repos. Re-asking the next teammate is not
 just slow — each re-answer is a chance to answer it differently, and a wrong status name moves tickets
 into a status the board doesn't have. So the lead fills one doc and sends it with the init command.
@@ -150,10 +150,10 @@ into a status the board doesn't have. So the lead fills one doc and sends it wit
 - **Template** — `setup/tlm-init.template.json`. Its shape **is** a `settings.local.json` (`env` + `tlm`)
   plus a `$tlmInit` meta block, deliberately not a second schema: `tlm-config.reference.json` stays the
   only place a key is defined.
-- **Script** — `skills/project-setup/init.mjs`: `template [--from-current] [--with-secrets] | detect |
+- **Script** — `skills/tlm-project-setup/init.mjs`: `template [--from-current] [--with-secrets] | detect |
   apply [--dry-run] [--prefer-local] | consume`. `--from-current` is the real authoring path — a working
   project is the answer key. Only `apply` writes, and only to `.claude/settings.local.json` + `.gitignore`.
-- **Consumed by** `project-setup` PHASE 0.5 (before any question: its `answered` list kills the PHASE 1
+- **Consumed by** `tlm-project-setup` PHASE 0.5 (before any question: its `answered` list kills the PHASE 1
   gating questions, its `still needed` list *is* the PHASE 2 form) and surfaced by `setup-check.mjs` —
   an init doc present is the one case where the SessionStart hook speaks in a repo with **no** config.
 - **Trust boundary.** A doc arrives over chat, so: a placeholder (`<<FILL: …>>`) counts as unanswered and
@@ -174,7 +174,7 @@ looks right and fails at runtime, so the rule is: read the real file, never infe
   (default `~/tlm-ecosystem`, one shared clone location per machine), `indexFile`, and `repos[]` with
   `{ name, role, path, gitUrl, ref, depth, notes }`. Registered per project so an unrelated repo is
   never pulled into context.
-- **Script** — `skills/project-setup/ecosystem.mjs`: `preflight | list | add <path | clone-url |
+- **Script** — `skills/tlm-project-setup/ecosystem.mjs`: `preflight | list | add <path | clone-url |
   browse-url> | sync | index`. `add` writes only the `tlm.ecosystem` block back and **normalizes a pasted
   browse URL** (a GitHub/GitLab `…/tree/<branch>` page, an Azure DevOps `…/_git/<repo>?version=GB<branch>`
   page) into a real clone URL + `ref`, so the URL a user copies from their browser is cloneable as-is;
@@ -182,7 +182,7 @@ looks right and fails at runtime, so the rule is: read the real file, never infe
   `.claude/ecosystem-map.md` — per repo the stack, top-level layout, contract paths worth opening and the
   sibling's own rule files, plus a **"How these repos relate" section** (repos grouped by role + any
   detected shared-package dependency). That map is the cross-project relationship file.
-- **Consumed by** `fe-coding` STEP 1.5 and reported on by `setup-check.mjs` (a registered repo that has
+- **Consumed by** `tlm-fe-coding` STEP 1.5 and reported on by `setup-check.mjs` (a registered repo that has
   gone missing from disk is flagged, since the map then names a source that cannot be opened).
 - **Read-only.** Nothing in this plugin writes to, commits in, or runs anything inside a sibling repo.
 
@@ -195,7 +195,7 @@ Declared in `hooks/hooks.json`, invoked via `${CLAUDE_PLUGIN_ROOT}`:
   speaks when config exists *and* is incomplete. Also flags the security case where
   `settings.local.json` is not gitignored. The **one** thing that breaks the no-config silence is a
   handed-over **init doc** (`.claude/tlm-init.json`) — it *is* the config, so the hook points at
-  `/project-setup` and flags the doc if it isn't gitignored.
+  `/tlm-project-setup` and flags the doc if it isn't gitignored.
 - **PostToolUse (Edit|Write|MultiEdit) → `lint-fe.mjs`** — advisory (runs *after* the write, cannot undo
   it). Emits `hookSpecificOutput.additionalContext` so Claude self-corrects the same turn. Silent unless
   it finds a violation.
@@ -254,19 +254,19 @@ touch /path/to/project/.claude/tlm-init.json && echo '{"cwd":"/path/to/project"}
 echo '{"tool_input":{"file_path":"'"$PWD"'/README.md"}}' | node hooks/lint-fe.mjs | wc -c   # expect 0
 
 # The rules-PR script, without writing anything:
-node skills/rule-capture/plugin-pr.mjs preflight
-node skills/rule-capture/plugin-pr.mjs diff        # review: what a PR would change upstream
+node skills/tlm-rule-capture/plugin-pr.mjs preflight
+node skills/tlm-rule-capture/plugin-pr.mjs diff        # review: what a PR would change upstream
 
 # The init/handover script (TLM_PROJECT_DIR points it at a consuming project):
-node skills/project-setup/init.mjs template --out /tmp/tlm-init.json      # blank annotated doc
-TLM_PROJECT_DIR=/path/to/project node skills/project-setup/init.mjs template --from-current --out /tmp/h.json
-TLM_PROJECT_DIR=/path/to/project node skills/project-setup/init.mjs detect            # no writes
-TLM_PROJECT_DIR=/path/to/project node skills/project-setup/init.mjs apply --dry-run   # merge preview
-cat /tmp/h.json | TLM_PROJECT_DIR=/path/to/project node skills/project-setup/init.mjs detect --path - --json
+node skills/tlm-project-setup/init.mjs template --out /tmp/tlm-init.json      # blank annotated doc
+TLM_PROJECT_DIR=/path/to/project node skills/tlm-project-setup/init.mjs template --from-current --out /tmp/h.json
+TLM_PROJECT_DIR=/path/to/project node skills/tlm-project-setup/init.mjs detect            # no writes
+TLM_PROJECT_DIR=/path/to/project node skills/tlm-project-setup/init.mjs apply --dry-run   # merge preview
+cat /tmp/h.json | TLM_PROJECT_DIR=/path/to/project node skills/tlm-project-setup/init.mjs detect --path - --json
 
 # The ecosystem script (TLM_PROJECT_DIR points it at a consuming project):
-TLM_PROJECT_DIR=/path/to/project node skills/project-setup/ecosystem.mjs preflight
-TLM_PROJECT_DIR=/path/to/project node skills/project-setup/ecosystem.mjs list
+TLM_PROJECT_DIR=/path/to/project node skills/tlm-project-setup/ecosystem.mjs preflight
+TLM_PROJECT_DIR=/path/to/project node skills/tlm-project-setup/ecosystem.mjs list
 
 # Install / update this repo as a marketplace to test end-to-end:
 /plugin marketplace add <git-url-or-local-path>
@@ -281,7 +281,7 @@ TLM_PROJECT_DIR=/path/to/project node skills/project-setup/ecosystem.mjs list
 ## Conventions enforced on the frontend code this plugin generates
 
 These are the *product* of the plugin, not rules for editing the plugin — but you'll reference them
-constantly. The full set is in `skills/fe-coding/SKILL.md`; the load-bearing ones:
+constantly. The full set is in `skills/tlm-fe-coding/SKILL.md`; the load-bearing ones:
 
 - Business logic in `_modules/`; routing files (`pages/`, `app/`) thin (≤5 lines, import a Screen).
 - Component hierarchy Basic → Base → Common → Domain → Screen; **never raw HTML** (`Col`/`Row`/

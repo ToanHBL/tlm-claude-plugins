@@ -4,7 +4,7 @@
 
 This document covers the **App Router** architecture pattern introduced in Next.js 13+. App Router uses React Server Components, improved layouts, and modern data fetching patterns.
 
-> **Team policy: App Router is the exception, not the default** (see the `fe-coding` skill →
+> **Team policy: App Router is the exception, not the default** (see the `tlm-fe-coding` skill →
 > "Choosing the Next.js router"). Default to **Page Router** for management/admin/internal apps; use App
 > Router only when genuinely needed — chiefly public, SEO-facing "publish" pages.
 

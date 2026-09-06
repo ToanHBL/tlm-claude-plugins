@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// PostToolUse hook — lints the file Claude just edited against the fe-coding
+// PostToolUse hook — lints the file Claude just edited against the tlm-fe-coding
 // HARD RULES that are mechanically detectable, and feeds any hits back so Claude
 // self-corrects in the same turn.
 //
@@ -145,7 +145,7 @@ if (findings.length === 0) process.exit(0)
 
 emitContext(
   'PostToolUse',
-  `fe-coding hard-rule check on ${file} flagged:
+  `tlm-fe-coding hard-rule check on ${file} flagged:
 ${findings.join('')}
 Fix these in the file you just edited before continuing. If a flag is a genuine, justified exception, say so explicitly rather than leaving it silent.`
 )

@@ -37,7 +37,7 @@ ai/
 │   │   ├── 03-api-data-flow.md           # Mode A: client → external backend
 │   │   ├── 04-migration-to-app-router.md
 │   │   ├── 05-fullstack-nextjs-api-prisma.md  # Mode B: app/api/**/route.ts + Prisma backend
-│   │   └── 06-hard-rules.md          # ★ enforceable rule set (fe-coding inlines the top few)
+│   │   └── 06-hard-rules.md          # ★ enforceable rule set (tlm-fe-coding inlines the top few)
 │   └── app-router/              # App Router specific rules (Next.js 13+)
 │       ├── 01-architecture.md
 │       ├── 02-routing-structure.md
@@ -54,9 +54,9 @@ ai/
     └── 06-hard-rules.md              # ★ enforceable rule set (Expo + CLI differences)
 ```
 
-> **★ `06-hard-rules.md`** — the enforceable rules per stack. The `fe-coding` skill inlines the most
+> **★ `06-hard-rules.md`** — the enforceable rules per stack. The `tlm-fe-coding` skill inlines the most
 > critical ones so they hold without a file read; these files carry the full set plus the reasoning.
-> The `fe-coding` skill detects which stack applies and routes here.
+> The `tlm-fe-coding` skill detects which stack applies and routes here.
 
 ---
 
@@ -65,7 +65,7 @@ ai/
 ### For New Projects
 
 1. **Choose Your Router Pattern** — policy: **Page Router by default; App Router only when needed**
-   (see the `fe-coding` skill → "Choosing the Next.js router"):
+   (see the `tlm-fe-coding` skill → "Choosing the Next.js router"):
    - **Page Router (default)** — management / admin / internal apps. Stable, proven. Two deployment modes:
      **Mode A** static-export SPA (calls an external backend), or
      **Mode B** fullstack Next.js where the UI stays in Page Router and the API is App Router
@@ -316,7 +316,7 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 - **Did I miss cursor / focus / hit targets?** → shared-fe/12-interactive-affordances.md
 - **How do I show data that has no API yet?** → shared-fe/13-mock-data.md
 - **Should I write an e2e test, and what does it assert?** → shared-fe/14-e2e-testing.md
-- **No Figma, but the feature exists in another repo?** → skills/fe-coding STEP 1.5
+- **No Figma, but the feature exists in another repo?** → skills/tlm-fe-coding STEP 1.5
 - **How do I type/validate an API response?** → shared-fe/15-zod-contract-first.md
 - **Second app (portal / mobile twin) — same repo or new one?** → shared-fe/16-monorepo-turborepo.md
 - **Does the backend go in this Next.js app or is it a BFF?** → nextjs/00-backend-decision.md
@@ -354,8 +354,8 @@ For questions or clarifications:
     403 gets diagnosed as a 502 outage. Seed the session, never drive the login form
   - New hook `hooks/e2e-watch.mjs` — fires on an edit to a page, layout, route handler or `*Screen`
     in a project that already has a suite, and asks whether the suite is now wrong. Silent otherwise
-  - `fe-coding` STEP 1.7 — offer e2e **in the plan**, once; never after the code is written
-  - `fe-coding` STEP 1.5 — when there is no Figma and a sibling repo already ships the screen, that
+  - `tlm-fe-coding` STEP 1.7 — offer e2e **in the plan**, once; never after the code is written
+  - `tlm-fe-coding` STEP 1.5 — when there is no Figma and a sibling repo already ships the screen, that
     UI is the design: match its information order, groupings and labels, but build it with THIS
     project's conventions. Authority runs Figma → sibling repo's shipped UI → the `09`–`13` defaults
   - `shared-fe/12` §4b — a hover, focus, visited or active state must not be clipped by an
@@ -371,7 +371,7 @@ For questions or clarifications:
     disabled, WCAG 2.2 hit targets, and a six-step pass run with the screen open
   - New `shared-fe/13-mock-data.md` — mock is scoped to the field that has no endpoint, not the
     screen; badge in every environment; `grep -rn MOCK src/` finds every site
-  - `fe-coding` STEP 1.6 — business understanding across the repos in `ecosystem-map.md`: draft
+  - `tlm-fe-coding` STEP 1.6 — business understanding across the repos in `ecosystem-map.md`: draft
     first, ask 3–5 questions once, persist to `.claude/business-context.md`, recap one line per task
   - New `vendor/ECC-ADOPTION.md` — review of `everything-claude-code`: provenance, what overlaps,
     what conflicts, and why nothing was copied (the repo ships no LICENSE)
@@ -382,7 +382,7 @@ For questions or clarifications:
     filtered-empty as its own
   - New `shared-fe/10-images-and-preview.md` — a thumbnail opens a full-size preview; `BaseModal`
     owns the APG dialog contract once; images reserve their box and fail visibly
-  - `figma-to-code` PHASE 0.5 — a Figma 429 is a wait, not a wall: honour `Retry-After`, full-jitter
+  - `tlm-figma-to-code` PHASE 0.5 — a Figma 429 is a wait, not a wall: honour `Retry-After`, full-jitter
     backoff, chunk by node id, cache to the scratchpad, and a bounded stop condition
   - Corrected two pagination examples that were still TanStack Query v4 (`keepPreviousData: true`
     → `placeholderData: keepPreviousData`) and used local state, raw grids and untranslated labels

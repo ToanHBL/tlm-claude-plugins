@@ -2,11 +2,11 @@
   "//": [
     "TEMPLATE — copy to <your-project>/.claude/settings.local.json and fill in.",
     "This file is GITIGNORED in a real project because it holds secrets.",
-    "Run /project-setup instead of editing this by hand — it asks only the questions your",
+    "Run /tlm-project-setup instead of editing this by hand — it asks only the questions your",
     "project actually needs, verifies each MCP with a real call, and writes this file for you.",
     "ONBOARDING A TEAMMATE? Don't send them this file. Send an INIT DOC (./tlm-init.template.json,",
     "or generate one with `init.mjs template --from-current`): it is the same shape minus your",
-    "secrets and per-machine paths, and /project-setup applies it instead of asking the questions.",
+    "secrets and per-machine paths, and /tlm-project-setup applies it instead of asking the questions.",
     "Every key is documented in ./tlm-config.reference.json.",
     "",
     "context7 + framelink-figma MCP servers ship WITH the plugin (bundled in plugin.json) — do NOT",
@@ -86,7 +86,7 @@
       "calls, a shared package, the web twin of a mobile flow. They are read-only reference; Claude opens",
       "files in them and never edits or commits there. Listed PER PROJECT, so an unrelated repo never gets",
       "pulled into context. A repo given as a git URL is cloned into workspaceRoot; one given as a folder",
-      "path stays where it is. /project-setup manages this via skills/project-setup/ecosystem.mjs",
+      "path stays where it is. /tlm-project-setup manages this via skills/tlm-project-setup/ecosystem.mjs",
       "(add <path-or-giturl> | sync | index) and writes the map at indexFile.",
       "Leave enabled:false for a standalone repo."
     ],
@@ -113,11 +113,11 @@
     },
 
     "//pluginRepo": [
-      "THIS PROJECT'S LIVE RULES COPY. /project-setup installs the plugin's skills/ ai/ hooks/ setup/ into",
+      "THIS PROJECT'S LIVE RULES COPY. /tlm-project-setup installs the plugin's skills/ ai/ hooks/ setup/ into",
       ".claude/tlm-plugin/ (committed) and the skills read THAT copy first — so a rule changed here takes",
       "effect immediately in this repo. The installed plugin under ${CLAUDE_PLUGIN_ROOT} stays the delivery",
       "channel and the fallback; it is never edited in place (a marketplace update overwrites it).",
-      "Sharing a rule with the team is a PR: rule-capture runs skills/rule-capture/plugin-pr.mjs diff (the",
+      "Sharing a rule with the team is a PR: tlm-rule-capture runs skills/tlm-rule-capture/plugin-pr.mjs diff (the",
       "review step) and then open <slug>. Set enabled:false only for a repo that must run purely on the",
       "installed plugin. See tlm-config.reference.json → tlm.pluginRepo."
     ],

@@ -1,5 +1,5 @@
 ---
-name: figma-to-code
+name: tlm-figma-to-code
 description: Build a screen or component from a Figma design — fetches the design via the Framelink Figma MCP, confirms what it sees, plans placement, then implements it in the project's actual stack (Next.js App/Page Router or React Native) following the house conventions, wiring real APIs from a curl command or scaffolding mock data when no API exists yet. TRIGGER when the user pastes a figma.com link, or says "build from figma", "implement this design", "vibe code", "code màn hình này từ figma", "làm UI từ design".
 ---
 
@@ -7,7 +7,7 @@ Turn a Figma design into working, convention-compliant code:
 
 **Pre-flight → Fetch design → Confirm & plan → Implement → Wire data → Iterate**
 
-Stack-agnostic: the output style comes from `fe-coding`'s detected stack, so the same flow produces a
+Stack-agnostic: the output style comes from `tlm-fe-coding`'s detected stack, so the same flow produces a
 Next.js page or a React Native screen.
 
 **Input**: a Figma URL. If none is given, ask for one — this skill does not build UI from a description
@@ -17,7 +17,7 @@ Next.js page or a React Native screen.
 
 ## PHASE 0 — PRE-FLIGHT
 
-**1. Stack.** Resolve via the `fe-coding` skill (`tlm.project.type` → auto-detect → ask). Everything
+**1. Stack.** Resolve via the `tlm-fe-coding` skill (`tlm.project.type` → auto-detect → ask). Everything
 below adapts to it: Next.js gets Tailwind + `Col`/`Row`/`TextPrimary`; React Native gets
 `StyleSheet.create` + theme constants + `scale()`.
 
@@ -33,7 +33,7 @@ Report precisely which failure it was and what unblocks it:
 
 | Failure | What to tell the user |
 |---------|----------------------|
-| No Figma MCP tools found | Not configured — run `/project-setup figma`, or add the server manually (checklist Step 2) |
+| No Figma MCP tools found | Not configured — run `/tlm-project-setup figma`, or add the server manually (checklist Step 2) |
 | Tools exist, fetch returns 403 | Token invalid, expired, or lacking *File content* scope — regenerate at Figma → avatar → Settings → Security → Personal access tokens |
 | Fetch returns 404 | The file or frame isn't accessible to this token's account — check the link and team access |
 | Fetch returns **429**, or the error says rate limit / quota / too many requests | **Not a stop condition.** Retry per PHASE 0.5 and keep going until the design is in hand |
@@ -147,7 +147,7 @@ generic one used across 3+ domains is Common, a new primitive is `Base*`. Don't 
 
 ## PHASE 3 — IMPLEMENT
 
-Follow `fe-coding` — that skill owns the conventions and this one doesn't restate them. The parts that
+Follow `tlm-fe-coding` — that skill owns the conventions and this one doesn't restate them. The parts that
 bite most often when translating a design:
 
 - **Design values become tokens, not literals.** A hex from Figma goes into the Tailwind `@theme` /
@@ -210,7 +210,7 @@ differently-shaped real type. That mismatch is exactly how wrong data ships sile
   frame name or screenshot. Blocked means blocked — report why and stop.
 - Match the design closely; when something is ambiguous, ask rather than invent.
 - Never inline a Figma token into code or a committed file; never print it back.
-- Conventions come from `fe-coding` — don't restate or contradict them here.
+- Conventions come from `tlm-fe-coding` — don't restate or contradict them here.
 - English for all code, comments, and identifiers.
 - Don't add a UI-kit dependency to reproduce a design. Build the `Base*` primitive instead.
 - No API? Mock behind the real hook shape. Never a bare `fetch()` in a component.

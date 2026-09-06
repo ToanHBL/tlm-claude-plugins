@@ -1,5 +1,5 @@
 ---
-name: deployment-checklist
+name: tlm-deployment-checklist
 description: Generate a release/deployment checklist for any project. Compares the current branch against a chosen base, discovers all ticket IDs in scope, enriches each from the project's ticket-management tool (ClickUp / Jira / Linear / Azure DevOps / GitHub — resolved dynamically), reconciles against the deployment ticket's release notes, then lists the services to deploy and DB migrations to run based on code changes. TRIGGER whenever the user says "release check", "check release", "deployment check", "deployment checklist", "release checklist", "kiểm tra release", "check deploy", or asks to prepare/verify a release before deploying to production.
 ---
 
@@ -18,7 +18,7 @@ run so it never re-asks.
 
 ---
 
-**Input**: Optionally a deployment ticket ID/URL as the skill argument (e.g. `/deployment-checklist ABC-3000`).
+**Input**: Optionally a deployment ticket ID/URL as the skill argument (e.g. `/tlm-deployment-checklist ABC-3000`).
 
 ---
 
@@ -31,7 +31,7 @@ Compute this project's memory dir and read the config file:
 ```bash
 SLUG=$(pwd | sed 's#/#-#g; s#_#-#g')
 MEM_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/$SLUG/memory"
-cat "$MEM_DIR/deployment-checklist-config.md" 2>/dev/null || echo "__NO_CONFIG__"
+cat "$MEM_DIR/tlm-deployment-checklist-config.md" 2>/dev/null || echo "__NO_CONFIG__"
 ```
 
 The config file (when present) contains a fenced ```json block — parse it into `config`. If found and
@@ -90,18 +90,18 @@ Propose sensible auto-detected defaults, then confirm with the user (AskUserQues
 
 ### 0.5 Save config to memory (so future runs skip all of the above)
 
-Write `$MEM_DIR/deployment-checklist-config.md` following the memory format, embedding a machine-readable
+Write `$MEM_DIR/tlm-deployment-checklist-config.md` following the memory format, embedding a machine-readable
 JSON block for reliable re-parsing:
 
 ```markdown
 ---
-name: deployment-checklist-config
-description: Release/deployment tooling config for this project — ticket system, ID pattern, ready statuses, service & migration layout. Used by the deployment-checklist skill.
+name: tlm-deployment-checklist-config
+description: Release/deployment tooling config for this project — ticket system, ID pattern, ready statuses, service & migration layout. Used by the tlm-deployment-checklist skill.
 metadata:
   type: project
 ---
 
-This project's release-checklist configuration (edit the JSON to change how `/deployment-checklist` behaves).
+This project's release-checklist configuration (edit the JSON to change how `/tlm-deployment-checklist` behaves).
 
 ```json
 {
@@ -118,7 +118,7 @@ This project's release-checklist configuration (edit the JSON to change how `/de
 ```
 
 Then append one index line to `$MEM_DIR/MEMORY.md`:
-`- [Deployment checklist config](deployment-checklist-config.md) — ticket tool + release layout for /deployment-checklist`
+`- [Deployment checklist config](tlm-deployment-checklist-config.md) — ticket tool + release layout for /tlm-deployment-checklist`
 
 (For a `gh`/`az` CLI tool, set `"fetch": { "kind": "cli", "cmd": "gh issue view {id} --json number,title,state" }`.)
 
@@ -197,7 +197,7 @@ If `config.hasDeploymentTicket` is false, skip this phase and note it in the out
 ## PHASE 6 — OUTPUT
 
 Write a markdown checklist to the **scratchpad** dir named
-`deployment-checklist-{currentBranch-slug}-{today}.md` with sections:
+`tlm-deployment-checklist-{currentBranch-slug}-{today}.md` with sections:
 1. Release Tickets table (Ticket | Name | Status | ✅/⚠️/❓)
 2. Reconciliation vs deployment ticket (🔴 / 🟡 / ✔️) — or "N/A (no deployment ticket)"
 3. Services to Deploy (checkbox list + reasons; shared-change warning)

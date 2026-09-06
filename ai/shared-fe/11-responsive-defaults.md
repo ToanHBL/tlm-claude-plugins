@@ -1,7 +1,7 @@
 # Responsive Defaults — when the design draws one width
 
 Applies when a design specifies **one** width and nothing else. Layers on top of
-`02-styling-ui-conventions` §2 (breakpoint names) and `skills/fe-coding` STEP 0 (the design is the
+`02-styling-ui-conventions` §2 (breakpoint names) and `skills/tlm-fe-coding` STEP 0 (the design is the
 source of truth).
 
 ---

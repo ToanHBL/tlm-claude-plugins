@@ -1,5 +1,5 @@
 ---
-name: ticket-workflow
+name: tlm-ticket-workflow
 description: Work a ticket end-to-end from any tracker (ClickUp, Jira, Linear, Azure DevOps, GitHub Issues) — fetch it, move it to in-progress, cut a branch, write a plan file, implement, then sync a non-technical summary back and move it to review. Optionally attaches QA evidence (screenshots, self-test videos). TRIGGER when the user gives a ticket id like TLM-1234 / ABC-567, pastes a ticket URL, or says "work on task", "pick up ticket", "start task", "làm task", "nhận task", "xử lý ticket".
 ---
 
@@ -35,7 +35,7 @@ tracker like this:
   ask *inline, right here* in one focused question, persist them, continue. A missing value alone does
   not stop the skill.
 - **Tracker MCP/CLI unreachable, or a real ticket won't fetch** → the capability isn't usable. **Stop**
-  and give the user two choices: finish setup via `/project-setup`, or set `tlm.tickets.enabled=false`
+  and give the user two choices: finish setup via `/tlm-project-setup`, or set `tlm.tickets.enabled=false`
   to work without a tracker. Do **not** fall back to a degraded local-only (branch + plan only) mode —
   a ticket workflow with no ticket sync isn't this skill's job.
 
@@ -118,7 +118,7 @@ No emojis, no filler. Subtasks become items within this one plan file.
 
 ## PHASE 5 — IMPLEMENT
 
-Follow the plan step by step. Apply the `fe-coding` skill — it detects the stack from
+Follow the plan step by step. Apply the `tlm-fe-coding` skill — it detects the stack from
 `tlm.project.type` and applies the matching conventions. Update the plan file if the approach changes
 mid-way; a stale plan is worse than no plan.
 

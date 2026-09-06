@@ -1,5 +1,5 @@
 ---
-name: rule-capture
+name: tlm-rule-capture
 description: When the user corrects code with a reason — "do it this way instead, because…", "don't use X, use Y", "sao lại viết vậy, phải làm thế này" — classify whether that feedback is a NEW house rule, a gap in the existing rules, a correction that contradicts a current rule, or a one-off, then ask whether to persist it before applying the change. Runs BEFORE the edit, so the rule and the code land together. TRIGGER on any corrective feedback about code style, structure, naming, or approach, and after implementing something the user then pushes back on.
 ---
 
@@ -82,7 +82,7 @@ Options to offer:
 1. **Yes — house rule** (live here immediately, shipped to the team by PR): edit this project's **rules
    copy** (`tlm.pluginRepo.vendorDir`, default `.claude/tlm-plugin/`), then review and PR it upstream.
    *Only offer this when the rules copy exists* — otherwise the project runs on the installed plugin and
-   nothing can be edited from here (say so, and suggest `/project-setup`, which installs it).
+   nothing can be edited from here (say so, and suggest `/tlm-project-setup`, which installs it).
 2. **Yes — project rule** (this repo only): write it into this project's `CLAUDE.md`
 3. **Yes — my preference** (how I should work, not what the code should be): write it to memory
 4. **No — just this change**
@@ -120,7 +120,7 @@ moment a PR merges.
 **Never edit `${CLAUDE_PLUGIN_ROOT}` directly** (a managed clone; `/plugin marketplace update` overwrites
 it). All edits go into this project's rules copy at `tlm.pluginRepo.vendorDir` (default
 `.claude/tlm-plugin/`) — committed here, and **the source the skills and hooks actually run on**. If it is
-missing, stop and tell the user to run `/project-setup`, which installs it.
+missing, stop and tell the user to run `/tlm-project-setup`, which installs it.
 
 Make the same layered edits you always would — **inside the rules copy** (`$RULES` below):
 
@@ -129,7 +129,7 @@ Make the same layered edits you always would — **inside the rules copy** (`$RU
    - Shared across stacks → `$RULES/ai/shared-fe/`
    - Stack-specific → `$RULES/ai/<stack>/06-hard-rules.md`
 2. **If CRITICAL enough to hold without a second file read** → also add a short form to
-   `$RULES/skills/fe-coding/SKILL.md` in the matching section. Be strict; it stays useful only while short.
+   `$RULES/skills/tlm-fe-coding/SKILL.md` in the matching section. Be strict; it stays useful only while short.
 3. **Checklist line** → `$RULES/ai/shared-fe/07-ai-workflow-integration.md` §9 if it's checkable.
 4. **Mechanically detectable?** → add the `scan()` to `$RULES/hooks/lint-fe.mjs`. The installed hook
    delegates to this copy, so the check is live in this repo immediately — only add rules with a low
@@ -158,9 +158,9 @@ export TLM_PR_MODE="gh"                               # .prMode  (falls back to 
 export TLM_TITLE="rule(<slug>): <one-line summary>"
 export TLM_BODY="Classification + the rule + the WHY the user gave."
 
-node "$RULES/skills/rule-capture/plugin-pr.mjs" preflight   # tools + access, no writes
-node "$RULES/skills/rule-capture/plugin-pr.mjs" diff        # REVIEW — show this output to the user
-node "$RULES/skills/rule-capture/plugin-pr.mjs" open "<slug>"   # branch, bump, push, open the PR
+node "$RULES/skills/tlm-rule-capture/plugin-pr.mjs" preflight   # tools + access, no writes
+node "$RULES/skills/tlm-rule-capture/plugin-pr.mjs" diff        # REVIEW — show this output to the user
+node "$RULES/skills/tlm-rule-capture/plugin-pr.mjs" open "<slug>"   # branch, bump, push, open the PR
 ```
 
 1. **`diff` is the review gate, and it is not optional.** Show the user what the PR would change upstream

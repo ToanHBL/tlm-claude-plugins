@@ -85,7 +85,7 @@ an AA failure ships.
 An `onClick` on a `Col` or `Row` is invisible to the keyboard and to assistive tech, and inherits none
 of §2.
 
-- Navigation → `<Link>` (`fe-coding` STEP 2 §3).
+- Navigation → `<Link>` (`tlm-fe-coding` STEP 2 §3).
 - An action → `<BaseButton>`, including a bare variant for an icon-only or image trigger
   (`10-images-and-preview` §1).
 - A whole row that opens a record → **one** `<Link>` wrapping the row, not an `onClick` on the

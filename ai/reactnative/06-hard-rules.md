@@ -1,6 +1,6 @@
 # React Native — Hard Rules
 
-The enforceable rules for React Native. The `fe-coding` skill inlines the top few; this file is the full
+The enforceable rules for React Native. The `tlm-fe-coding` skill inlines the top few; this file is the full
 set. Deep detail: `01-architecture`, `02-styling-stylesheet`, `03-navigation-expo-router`,
 `04-data-and-storage`, `05-validation-forms` in this folder.
 

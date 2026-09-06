@@ -1,5 +1,5 @@
 ---
-name: ba-ticket
+name: tlm-ba-ticket
 description: BA/Product Owner ticket writer — turn a requirement or defect described in chat into ONE well-formed ClickUp ticket that follows the team's task/bug template. Fills the business sections (user story, description, reproduce steps, test scenarios); leaves the technical sections as headed placeholders for the developer. Never invents subtasks — the ticket it creates is the single source of truth. TRIGGER when the user describes a requirement, change request, or bug and asks to create/log a ticket — "tạo ticket", "tạo task trên ClickUp", "log bug", "viết ticket", "create a ticket for this", "raise a bug".
 ---
 
@@ -29,7 +29,7 @@ Confirm the ClickUp MCP is reachable (**ToolSearch**, e.g. `mcp__*ClickUp*__clic
 
 **Tickets is an all-or-nothing capability** (see `companions` in the reference). If the tracker
 MCP is unreachable or `tlm.tickets.enabled` is false, **stop** and point the user to
-`/project-setup` — do not fall back to printing a ticket body for manual pasting.
+`/tlm-project-setup` — do not fall back to printing a ticket body for manual pasting.
 
 ---
 

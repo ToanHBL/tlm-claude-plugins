@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// init.mjs — the HANDOVER path into /project-setup.
+// init.mjs — the HANDOVER path into /tlm-project-setup.
 //
 // The normal path asks the user everything. That is right for the person who set the
 // project up, and wrong for the ninth teammate onboarding into it: they end up
@@ -8,7 +8,7 @@
 // differently from everyone else.
 //
 // So the lead fills ONE file — the init doc — and sends it with the init command. The
-// teammate drops it in the repo, runs /project-setup, and every value in it is already
+// teammate drops it in the repo, runs /tlm-project-setup, and every value in it is already
 // answered: no gating questions, no form rows, just whatever genuinely cannot be
 // shared (their own Figma token) plus the OAuth connectors only they can click.
 //
@@ -363,13 +363,13 @@ function gaps(cfg) {
   const blank = (v) => v === undefined || v === null || v === '' || isPlaceholder(v)
 
   if (blank(tlm.project?.name)) add('tlm.project.name', 'used in release-note headings', 'the human-readable project name')
-  if (blank(tlm.project?.type)) add('tlm.project.type', 'fe-coding would re-detect the stack every session', `one of: ${PROJECT_TYPES.join(' | ')}`)
-  if (blank(tlm.project?.baseBranch)) add('tlm.project.baseBranch', 'ticket-workflow cannot cut branches', 'git symbolic-ref refs/remotes/origin/HEAD, then confirm')
+  if (blank(tlm.project?.type)) add('tlm.project.type', 'tlm-fe-coding would re-detect the stack every session', `one of: ${PROJECT_TYPES.join(' | ')}`)
+  if (blank(tlm.project?.baseBranch)) add('tlm.project.baseBranch', 'tlm-ticket-workflow cannot cut branches', 'git symbolic-ref refs/remotes/origin/HEAD, then confirm')
 
   if (tlm.design?.enabled === true) {
     const key = tlm.design?.tokenEnvKey || 'FIGMA_ACCESS_TOKEN'
     if (blank(cfg?.env?.[key])) {
-      add(`env.${key}`, 'figma-to-code hard-stops without it — it never guesses a design', 'Figma → avatar → Settings → Security → Personal access tokens → Generate. Scope "File content". Starts with figd_. PER-USER: each teammate makes their own.')
+      add(`env.${key}`, 'tlm-figma-to-code hard-stops without it — it never guesses a design', 'Figma → avatar → Settings → Security → Personal access tokens → Generate. Scope "File content". Starts with figd_. PER-USER: each teammate makes their own.')
     }
   }
 
@@ -377,17 +377,17 @@ function gaps(cfg) {
     if (blank(tlm.tickets?.system)) add('tlm.tickets.system', 'no tracker to talk to', 'clickup | jira | linear | azure-devops | github')
     if (blank(tlm.tickets?.idPattern)) add('tlm.tickets.idPattern', 'ticket ids cannot be found in commits', 'detected from git log, then confirm — e.g. TLM-\\d+')
     if (blank(tlm.tickets?.urlTemplate)) add('tlm.tickets.urlTemplate', 'release notes cannot link tickets', 'paste any ticket URL — workspaceId and this template are both derived from it')
-    if (blank(tlm.tickets?.statuses?.inProgress)) add('tlm.tickets.statuses.inProgress', 'ticket-workflow cannot move the ticket', 'fetch one real ticket first, then pick from its actual status names')
-    if (blank(tlm.tickets?.statuses?.inReview)) add('tlm.tickets.statuses.inReview', 'ticket-workflow cannot submit for review', 'same — from the real status vocabulary')
+    if (blank(tlm.tickets?.statuses?.inProgress)) add('tlm.tickets.statuses.inProgress', 'tlm-ticket-workflow cannot move the ticket', 'fetch one real ticket first, then pick from its actual status names')
+    if (blank(tlm.tickets?.statuses?.inReview)) add('tlm.tickets.statuses.inReview', 'tlm-ticket-workflow cannot submit for review', 'same — from the real status vocabulary')
     if (!Array.isArray(tlm.tickets?.statuses?.ready) || !tlm.tickets.statuses.ready.length) {
-      add('tlm.tickets.statuses.ready', 'deployment-checklist cannot tell what is safe to ship', 'the statuses that mean shippable')
+      add('tlm.tickets.statuses.ready', 'tlm-deployment-checklist cannot tell what is safe to ship', 'the statuses that mean shippable')
     }
-    if (tlm.tickets?.hasDeploymentTicket === undefined) add('tlm.tickets.hasDeploymentTicket', 'deployment-checklist branches on it', 'yes/no — does the team keep one release ticket listing what ships?')
+    if (tlm.tickets?.hasDeploymentTicket === undefined) add('tlm.tickets.hasDeploymentTicket', 'tlm-deployment-checklist branches on it', 'yes/no — does the team keep one release ticket listing what ships?')
   }
 
   if (tlm.chat?.enabled === true) {
     const chans = Array.isArray(tlm.chat?.channels) ? tlm.chat.channels : []
-    if (!chans.length) add('tlm.chat.channels', 'mobile-release-notes has nowhere to post', 'Slack → open the channel → View channel details → id at the bottom (C…)')
+    if (!chans.length) add('tlm.chat.channels', 'tlm-mobile-release-notes has nowhere to post', 'Slack → open the channel → View channel details → id at the bottom (C…)')
     chans.forEach((c, i) => {
       if (blank(c?.id)) add(`tlm.chat.channels[${i}].id`, 'that channel cannot be posted to', 'Slack → View channel details → id at the bottom (C…)')
     })
@@ -463,7 +463,7 @@ function analyze(raw, label) {
   }
   const docSchema = Number(meta.configVersion)
   if (Number.isFinite(docSchema) && docSchema < REF_VERSION) {
-    warnings.push(`the doc was written for tlm schema v${docSchema}; this plugin ships v${REF_VERSION} — after applying, /project-setup runs as a SYNC and adds only the fields v${docSchema + 1}+ introduced`)
+    warnings.push(`the doc was written for tlm schema v${docSchema}; this plugin ships v${REF_VERSION} — after applying, /tlm-project-setup runs as a SYNC and adds only the fields v${docSchema + 1}+ introduced`)
   } else if (Number.isFinite(docSchema) && docSchema > REF_VERSION) {
     warnings.push(`the doc was written for tlm schema v${docSchema}, newer than this plugin's v${REF_VERSION} — update the plugin first, or fields will be dropped`)
   }
@@ -497,7 +497,7 @@ function analyze(raw, label) {
   const figKey = clean?.tlm?.design?.tokenEnvKey || 'FIGMA_ACCESS_TOKEN'
   const fig = clean?.env?.[figKey]
   if (fig && !String(fig).startsWith('figd_')) {
-    warnings.push(`env.${figKey} does not start with figd_ — Figma personal access tokens do; check it before figma-to-code stops on it`)
+    warnings.push(`env.${figKey} does not start with figd_ — Figma personal access tokens do; check it before tlm-figma-to-code stops on it`)
   }
   if (clean?.env && Object.keys(clean.env).length && meta.secrets === 'per-user') {
     warnings.push('the doc declares secrets:"per-user" but carries env values — treating them as fallbacks only; a value already on this machine wins')
@@ -533,7 +533,7 @@ function dropIncompleteEntries(clean, warnings) {
     const keep = arr.filter((e) => e && typeof e === 'object' && l.ok(e))
     if (keep.length === arr.length) continue
     warnings.push(
-      `${arr.length - keep.length} ${l.label} entry/entries in the doc were left as template placeholders — ignored, so /project-setup asks for them instead`
+      `${arr.length - keep.length} ${l.label} entry/entries in the doc were left as template placeholders — ignored, so /tlm-project-setup asks for them instead`
     )
     if (keep.length) owner[l.key] = keep
     else delete owner[l.key]
@@ -571,7 +571,7 @@ function cmdDetect(flags) {
       for (const n of nearby) out(`    ${n}      → node init.mjs apply --path "${n}"`)
     }
     out('')
-    out('  nothing to import: run /project-setup the normal way (it asks the questions itself).')
+    out('  nothing to import: run /tlm-project-setup the normal way (it asks the questions itself).')
     process.exitCode = 3
     return
   }
@@ -612,7 +612,7 @@ function cmdDetect(flags) {
 function cmdApply(flags) {
   const input = resolveInput(flags.path)
   if (!input.file) {
-    out('no init doc found — nothing to apply. Run /project-setup the normal way.')
+    out('no init doc found — nothing to apply. Run /tlm-project-setup the normal way.')
     process.exitCode = 3
     return
   }
@@ -675,8 +675,8 @@ function cmdApply(flags) {
   out('')
   out('next:')
   if (cfg.tlm?.ecosystem?.enabled === true && (cfg.tlm.ecosystem.repos || []).length) {
-    out(`  node "${path.join(RULES_ROOT, 'skills/project-setup/ecosystem.mjs')}" sync     # clone the sibling repos`)
-    out(`  node "${path.join(RULES_ROOT, 'skills/project-setup/ecosystem.mjs')}" index    # write .claude/ecosystem-map.md`)
+    out(`  node "${path.join(RULES_ROOT, 'skills/tlm-project-setup/ecosystem.mjs')}" sync     # clone the sibling repos`)
+    out(`  node "${path.join(RULES_ROOT, 'skills/tlm-project-setup/ecosystem.mjs')}" index    # write .claude/ecosystem-map.md`)
   }
   out(`  verify each integration with one real call (PHASE 3), then:`)
   out(`  node "${path.join(SELF_DIR, 'init.mjs')}" consume   # delete the handover doc once you are done with it`)
@@ -732,7 +732,7 @@ const PER_MACHINE_STRIP = [
 
 function fromCurrent(withSecrets) {
   const cfg = readJsonSafe(CFG) || readJsonSafe(ALT)
-  if (!cfg) die(`no config to copy from — ${rel(CFG)} not found. Run /project-setup here first, or drop --from-current for a blank template.`)
+  if (!cfg) die(`no config to copy from — ${rel(CFG)} not found. Run /tlm-project-setup here first, or drop --from-current for a blank template.`)
   const src = cfg.tlm ? cfg : { tlm: cfg }
   const doc = { tlm: JSON.parse(JSON.stringify(src.tlm || {})) }
 
@@ -777,7 +777,7 @@ function cmdTemplate(flags) {
         notes: '',
         howToUse: [
           'Save this file into the project as .claude/tlm-init.json',
-          'In Claude Code, run:  /project-setup init',
+          'In Claude Code, run:  /tlm-project-setup init',
           'Everything in here is applied without asking; you are only asked for what it does not carry.',
         ],
       },
@@ -808,14 +808,14 @@ function handoverMessage(outPath, withSecrets) {
   out('── paste this with the file ─────────────────────────────────────────')
   out('Setup for this repo is pre-filled. Two steps:')
   out(`  1. Save the attached ${path.basename(outPath)} into the project as .claude/tlm-init.json`)
-  out('  2. In Claude Code run:  /project-setup init')
+  out('  2. In Claude Code run:  /tlm-project-setup init')
   out('You will only be asked for what the file cannot carry (your own Figma token, and')
   out('clicking Connect on the ClickUp / Slack connectors).')
   out('────────────────────────────────────────────────────────────────────')
   if (withSecrets) {
     out('')
     out('⚠ This file now contains a real token. Send it over a channel you would send a')
-    out('  password over, tell them to delete it after /project-setup init, and prefer')
+    out('  password over, tell them to delete it after /tlm-project-setup init, and prefer')
     out('  per-user tokens next time — a shared PAT dies for everyone when it is rotated.')
   }
 }

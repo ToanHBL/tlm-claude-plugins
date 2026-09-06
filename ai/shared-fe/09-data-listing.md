@@ -1,7 +1,7 @@
 # Data Listing — tables, sort, filter, paging
 
 Applies when a screen lists records and **the user gave no design**. With a design, the design wins
-(`skills/fe-coding` STEP 0). Layers on top of `03-component-patterns` (component hierarchy, empty
+(`skills/tlm-fe-coding` STEP 0). Layers on top of `03-component-patterns` (component hierarchy, empty
 states) and `07-ai-workflow-integration` §7b (types mirror the backend).
 
 ---
