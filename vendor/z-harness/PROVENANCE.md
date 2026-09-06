@@ -51,7 +51,7 @@ cp -R vendor/z-harness/. ~/z-harness-check && cd ~/z-harness-check && git init -
 bash tests/test-hooks.sh    # expect: hooks: 180 passed
 ```
 
-Requires `bash` and `jq`, which is also why these hooks are **not** wired into this plugin's own
-`hooks.json` — they would not run on Windows, and this plugin's hooks are Node precisely so they do.
-z-harness stays a separate plugin, installed on its own where it is wanted. See the README's
-*Guardrails* section.
+Requires `bash` and `jq`. As of plugin 2.13.0 these hooks **are wired into this plugin's own
+`hooks.json`** — installing tlm-claude-plugins turns the guardrails on. The Windows cost was accepted
+deliberately: on a machine without bash and jq the guardrail hooks cannot run (the plugin's own Node
+hooks still do). See the README's *Guardrails* section for the caveat and the plan-gate exemption.

@@ -21,6 +21,28 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/vendor/z-harness/hooks/auto-worktree.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/vendor/z-harness/hooks/check-content-rules.sh\"",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/vendor/z-harness/hooks/require-plan.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",
@@ -45,6 +67,27 @@
             "args": [
               "${CLAUDE_PLUGIN_ROOT}/hooks/e2e-watch.mjs"
             ]
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/vendor/z-harness/hooks/check-conventions.sh\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/vendor/z-harness/hooks/verify-before-stop.sh\"",
+            "timeout": 1200
           }
         ]
       }

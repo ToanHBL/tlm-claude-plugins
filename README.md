@@ -40,27 +40,27 @@ resolved from your config. The coding skills need no configuration at all.
 Deep reference the skills load on demand lives in [`ai/`](ai/); the setup contract lives in
 [`setup/SETUP-CHECKLIST.md`](setup/SETUP-CHECKLIST.md).
 
-## Guardrails (z-harness)
+## Guardrails (z-harness) — built in
 
-[z-harness](https://github.com/ndk98z/z-harness) is **copied** into `vendor/z-harness` for
-reference — worktree isolation, a plan gate before the first edit to a path you call sensitive,
-content rules, and a gate-before-stop that runs your own test commands and blocks the stop while any
-is red.
+[z-harness](https://github.com/ndk98z/z-harness) is **copied** into `vendor/z-harness` and its hooks
+are **wired into this plugin's `hooks.json`**: installing tlm-claude-plugins turns the guardrails on —
+worktree isolation, a plan gate before the first edit to a path you call sensitive, content rules,
+and a gate-before-stop that runs your own test commands and blocks the stop while any is red.
 
-A copy, not a submodule, and not wired into this plugin's `hooks.json`: nothing in it runs until you
-install z-harness itself. Read [`vendor/z-harness/PROVENANCE.md`](vendor/z-harness/PROVENANCE.md)
+A copy, not a submodule. Read [`vendor/z-harness/PROVENANCE.md`](vendor/z-harness/PROVENANCE.md)
 before changing anything in there — it records which commit this came from, and edits made only in
 that directory are lost on the next sync. Syncing is manual for now.
 
-It is **separate on purpose.** Its hooks are bash + jq, and this plugin's are Node precisely so they
-run on Windows — folding them together would have cost that. So the two coexist rather than merge:
-z-harness reads `.claude/harness.json`, this plugin reads the `tlm` block in
-`.claude/settings.local.json`, and neither knows about the other's file. Install it separately, in the
-projects that want it.
+**Platform caveat, accepted deliberately:** the z-harness hooks are bash + jq while this plugin's own
+hooks are Node. On a machine without bash and jq (plain Windows, no Git Bash/WSL) the guardrail hooks
+cannot run — the rest of the plugin still works, but nothing blocks edits outside a worktree there.
+Windows users: run sessions under Git Bash or WSL, or accept running without the fences.
 
-The one place they would have collided is the plan gate, which covers `.claude/` wholesale — including
-`.claude/tlm-plugin/`, the rules copy whose whole design is that you edit it mid-conversation. Excuse
-it, in `.claude/harness.json`:
+The two config files stay separate: z-harness reads `.claude/harness.json`, this plugin reads the
+`tlm` block in `.claude/settings.local.json`.
+
+The plan gate covers `.claude/` wholesale — including `.claude/tlm-plugin/`, the rules copy whose
+whole design is that you edit it mid-conversation. Excuse it, in `.claude/harness.json`:
 
 ```json
 { "planExempt": ["^\\.claude/tlm-plugin/"] }
