@@ -122,6 +122,12 @@ scan(
   'router.push — navigate via <Link> (web) / router.navigate (RN); router.push/replace is for post-action redirects only'
 )
 
+// --- contracts: responses are parsed, not cast ------------------------------
+scan(
+  '\\.json\\(\\)\\s*\\)?\\s*as\\s+[A-Za-z_$(]',
+  'response cast (`.json() as T`) — parse it with the Zod schema at the service boundary (schema.parse / safeParse); the type comes from z.infer. See ai/shared-fe/15-zod-contract-first.md'
+)
+
 // --- page-router / prisma hard rules --------------------------------------
 scan(
   '(^|[^A-Za-z0-9_])getServerSideProps([^A-Za-z0-9_]|$)',

@@ -4,6 +4,12 @@
 
 This document outlines validation patterns for forms, API inputs, and data handling across the application. Follow these patterns consistently for all user inputs and data mutations.
 
+**Zod-first is the contract rule, not just the form rule.** Schemas are the source of truth (types via
+`z.infer`), and validation runs in BOTH directions — inbound inputs here, and **responses you consume**,
+which are parsed at the service boundary, never bare-cast with `res.json() as T`. The outbound half,
+fixtures pinned with `satisfies`, and the monorepo `packages/contracts` pattern live in
+`15-zod-contract-first.md`.
+
 ## Client-Side Validation
 
 ### Form Validation with React Hook Form + Zod
@@ -668,6 +674,8 @@ const onSubmit = (data: z.infer<typeof schema>) => {
 
 1. **Always validate on both client and server**
 2. **Use Zod for complex validation logic**
+2b. **Parse consumed responses too** — `schema.parse(await res.json())` at the service boundary, never
+   `as T` (see `15-zod-contract-first.md`)
 3. **Use UtilsForm.computeRules() for simple i18n forms**
 4. **Use `isInteger: true` for whole numbers**
 5. **Use `isNumber: true` for decimals**

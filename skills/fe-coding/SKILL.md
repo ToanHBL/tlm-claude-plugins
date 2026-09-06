@@ -313,6 +313,19 @@ A product with both an admin area and a public site may **mix** — Page Router 
 for the public pages. Don't migrate an admin app to App Router for "modernness"; that is not a
 sufficient reason under this policy.
 
+### Where the backend lives (decide BEFORE the router)
+
+- **The system already has a real backend** (`role: backend` in `.claude/ecosystem-map.md`) → the
+  Next.js server layer is a **BFF only**: hold the session cookie, proxy, map errors. No business
+  logic, no DB, no re-implementing what the backend owns.
+- **Standalone product, no backend** → new server-side work defaults to **Next.js server API in the
+  same app** — Server Actions + route handlers + Prisma (`'use server'` → auth guard → Zod `safeParse`
+  → pure service fn → `prisma.$transaction` → `revalidatePath`). A separate service needs a stated
+  reason; "cleaner separation" is not one.
+
+Record the answer in `.claude/codebase-map.md` (`backend: bff → <repo>` / `backend: in-app`).
+→ `ai/nextjs/00-backend-decision.md`
+
 ### 1. Framework-agnostic `_modules/` architecture
 
 Business logic lives in `_modules/`, **never** in the routing layer. Routing files are thin (≤5 lines)
@@ -330,6 +343,10 @@ src/
 ```
 
 **Why:** portable across frameworks — App Router, Remix, Vite, even RN with shared logic.
+
+**A product with more than one app** (ops + customer portal, web + mobile twin) is a **Turborepo
+monorepo** — `apps/*` + `packages/contracts` (Zod schemas + fixtures), apps never importing each other.
+Each app keeps this same `_modules/` layout inside it. → `ai/shared-fe/16-monorepo-turborepo.md`
 
 ### 2. Component hierarchy — put components in the right layer
 
@@ -466,7 +483,12 @@ when its neighbour is empty). No nested ternaries inside template literals; map 
 - **Never use `@ts-ignore` / `@ts-expect-error`** unless unavoidable — always comment why.
 - Prefer enums / `as const` objects in `config/` over magic strings. See `ai/shared-fe/04`.
 
-### 9. Validation — Zod + React Hook Form
+### 9. Validation — Zod-first + React Hook Form
+
+**The Zod schema is the source of truth for every wire contract** — the TypeScript type comes from
+`z.infer`, never hand-written next to the schema. One schema serves both sides: `zodResolver(schema)`
+on the form and `schema.safeParse` in the action/handler, so client and server rules are the same
+object and cannot drift.
 
 Use `UtilsForm.computeRules` to derive validation messages / RHF rules from a Zod schema. It returns RHF
 `RegisterOptions` and is fully typed — **no `as any` cast needed**.
@@ -486,6 +508,11 @@ inputs). See `ai/shared-fe/05-validation-patterns.md`.
   computed as `registrationNumber ?? String(id)` displayed a numeric id as a licence plate). Derive
   display values **inline at the render site** from the untouched source field. When wiring a real
   endpoint over a mock, edit both so they agree on the true names. See `ai/shared-fe/07` §7b.
+- **Responses are parsed, not cast (MUST).** `await res.json() as T` is a promise the compiler believes
+  and nobody checks — a backend rename stays green in `tsc` and renders em-dashes in production. The
+  mirroring above is done as a **Zod schema** (`z.infer` for the type) and every consumed response goes
+  through `schema.parse`/`safeParse` at the service boundary. Mocks/fixtures are pinned with
+  `satisfies`. See `ai/shared-fe/15-zod-contract-first.md`.
 
 ---
 

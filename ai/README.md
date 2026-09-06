@@ -21,13 +21,16 @@ ai/
 │   ├── 11-responsive-defaults.md # One drawn width: build it, and don't break below it
 │   ├── 12-interactive-affordances.md # Cursor, hover, focus ring, hit target — a post-coding pass
 │   ├── 13-mock-data.md          # Label what isn't wired yet; grep -rn MOCK finds every site
-│   └── 14-e2e-testing.md        # Playwright: the no-failing-request sweep + declared refusals
+│   ├── 14-e2e-testing.md        # Playwright: the no-failing-request sweep + declared refusals
+│   ├── 15-zod-contract-first.md # Schemas are the source of truth; responses parsed, never `as T`
+│   └── 16-monorepo-turborepo.md # Multi-app products: Turborepo, apps/* + packages/contracts
 ├── vendor/
 │   └── ECC-ADOPTION.md          # everything-claude-code review: provenance + what we turned off
 ├── templates/                   # Requirement-intake templates
 │   ├── input-processing-template.md
 │   └── requirement-summary-template.md
 ├── nextjs/
+│   ├── 00-backend-decision.md   # BFF over an existing backend, or backend-first in-app (before the router choice)
 │   ├── page-router/             # Page Router specific rules (Next.js 12-15)
 │   │   ├── 01-architecture.md            # Mode A: static-export SPA
 │   │   ├── 02-routing-structure.md
@@ -314,6 +317,9 @@ Types/Models:   PascalCase.ts         (ModelProduct.ts)
 - **How do I show data that has no API yet?** → shared-fe/13-mock-data.md
 - **Should I write an e2e test, and what does it assert?** → shared-fe/14-e2e-testing.md
 - **No Figma, but the feature exists in another repo?** → skills/fe-coding STEP 1.5
+- **How do I type/validate an API response?** → shared-fe/15-zod-contract-first.md
+- **Second app (portal / mobile twin) — same repo or new one?** → shared-fe/16-monorepo-turborepo.md
+- **Does the backend go in this Next.js app or is it a BFF?** → nextjs/00-backend-decision.md
 - **How do I turn a user story / API spec into tasks?** → templates/input-processing-template.md
 - **How do I normalize cURL/JSON into a spec?** → templates/requirement-summary-template.md
 

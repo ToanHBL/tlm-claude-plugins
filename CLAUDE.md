@@ -63,7 +63,9 @@ are workflow skills, tracker-agnostic (ClickUp / Jira / Linear / Azure DevOps / 
 config):
 
 - `project-setup` — scans missing config, one form, writes `.claude/settings.local.json`. Also: applies a
-  handed-over **init doc** when there is one (PHASE 0.5, see below), installs
+  handed-over **init doc** when there is one (PHASE 0.5, see below), offers the **Turborepo starter** on
+  an empty repo (PHASE 0.8 → `ai/shared-fe/16-monorepo-turborepo.md`: `apps/*` + `packages/contracts` +
+  `turbo.json`), installs
   the project's **live rules copy** (PHASE 1.5, see below), **registers the other repos of the system**
   (PHASE 1.6 → `ecosystem.mjs` → `.claude/ecosystem-map.md`), and scans the project's **own** rules/specs
   (`CLAUDE.md`, `.cursorrules`, `.claude/rules`, `openspec/`, lint/tsconfig), cataloguing them into
@@ -75,6 +77,11 @@ config):
 - `figma-to-code` — Figma link → screen; **hard-stops** if the Framelink MCP is missing/unauthorized
   (never approximates a design from a frame name or screenshot).
 - `ticket-workflow` — ticket → branch → plan → implement → sync.
+- `ba-ticket` — BA/PO writing pass: requirement or bug described in chat → **one** ClickUp ticket
+  following the team's task/bug templates (`tlm.tickets.baTemplates`). Fills the business sections
+  (user story, description, reproduce steps, test scenarios); technical sections (codebase
+  exploration, migration/database) stay as placeholders for the dev. Links related/parent tickets
+  the user names, **never invents subtasks** — the ticket it creates is the single source of truth.
 - `mobile-release-notes` — commit range → plain-language notes → Slack draft (mobile projects only).
 - `deployment-checklist` — release check: tickets, services, migrations.
 - `spec-driven` — drives **OpenSpec** (external `npx` CLI, needs Node ≥ 20.19) for spec-first work:
@@ -283,5 +290,12 @@ constantly. The full set is in `skills/fe-coding/SKILL.md`; the load-bearing one
   are for post-action redirects only.
 - No `as any` / `@ts-ignore`; no hardcoded hex (design tokens); i18n via `t()`; null-safe display via
   `safeString` / `joinText` / `joinWith`; Zod + React Hook Form (`register`-first).
+- **Zod contract-first**: schemas are the source of truth (`z.infer` for types); consumed responses are
+  **parsed at the service boundary, never `res.json() as T`**; fixtures pinned with `satisfies`
+  (`ai/shared-fe/15`). Multi-app products are Turborepo monorepos with `packages/contracts`
+  (`ai/shared-fe/16`).
+- **Backend decision before router choice** (`ai/nextjs/00-backend-decision.md`): an existing backend in
+  the ecosystem ⇒ Next.js is a BFF only; a standalone product ⇒ backend-first in-app (Server Actions +
+  route handlers + Prisma).
 - **Team policy: Next.js Page Router is the default.** App Router only for public/SEO pages or when
   SSR/RSC is genuinely needed — not for modernness.
